@@ -1,7 +1,7 @@
-// Statistical tests — runs test, Monte Carlo bootstrap, VaR/CVaR
-// Papers: Wald-Wolfowitz (1940), Easley/López de Prado (2012), Cornish-Fisher (1937)
+// Statistical tests — runs test, Stationary Block Bootstrap, Expected Shortfall
+// Papers: Wald-Wolfowitz (1940), Politis & Romano (1994) SBB, Basel III/IV ES
 
-import { normalCDF, normalInverse, mean, stddev, skewness, kurtosis, percentile, shuffle } from "./math-utils";
+import { normalCDF, normalInverse, mean, stddev, skewness, kurtosis, percentile } from "./math-utils";
 
 // ─── Wald-Wolfowitz Runs Test ───
 // Tests if sequence of W/L is random
@@ -17,7 +17,6 @@ export function runsTest(returns: number[]): {
     return { runs: 0, expected: 0, z: 0, pValue: 1, isRandom: true };
   }
 
-  // Count runs
   let runs = 1;
   for (let i = 1; i < n; i++) {
     if (binary[i] !== binary[i - 1]) runs++;
@@ -32,9 +31,12 @@ export function runsTest(returns: number[]): {
   return { runs, expected, z, pValue, isRandom: pValue > 0.05 };
 }
 
-// ─── Monte Carlo Bootstrap ───
-// Shuffle trade returns N times, compare actual result to distribution
-export function monteCarloBootstrap(tradeReturns: number[], nSims = 10000): {
+// ─── Stationary Block Bootstrap (SBB) ───
+// Politis & Romano (1994). Preserves serial dependence by resampling
+// in geometrically-distributed random-length blocks.
+// Standard shuffle destroys autocorrelation → underestimates drawdowns
+// for momentum strategies. SBB fixes this.
+export function stationaryBlockBootstrap(tradeReturns: number[], nSims = 5000, avgBlockLen = 5): {
   actualReturn: number;
   medianReturn: number;
   p5: number;
@@ -46,18 +48,35 @@ export function monteCarloBootstrap(tradeReturns: number[], nSims = 10000): {
     return { actualReturn: 0, medianReturn: 0, p5: 0, p95: 0, percentileRank: 50, pctProfitable: 50 };
   }
 
+  const n = tradeReturns.length;
   const actualReturn = tradeReturns.reduce((prod, r) => prod * (1 + r / 100), 1) - 1;
   const simReturns: number[] = [];
 
-  for (let i = 0; i < nSims; i++) {
-    const shuffled = shuffle(tradeReturns);
-    const simReturn = shuffled.reduce((prod, r) => prod * (1 + r / 100), 1) - 1;
+  // Geometric block probability: P(block ends) = 1/avgBlockLen
+  const pEnd = 1 / avgBlockLen;
+
+  for (let sim = 0; sim < nSims; sim++) {
+    const sampled: number[] = [];
+    let pos = Math.floor(Math.random() * n); // random start
+
+    while (sampled.length < n) {
+      sampled.push(tradeReturns[pos]);
+
+      // With probability pEnd, jump to a new random position (new block)
+      // Otherwise, advance sequentially (continue block)
+      if (Math.random() < pEnd) {
+        pos = Math.floor(Math.random() * n);
+      } else {
+        pos = (pos + 1) % n; // wrap around
+      }
+    }
+
+    const simReturn = sampled.reduce((prod, r) => prod * (1 + r / 100), 1) - 1;
     simReturns.push(simReturn);
   }
 
-  const sorted = [...simReturns].sort((a, b) => a - b);
-  const rank = sorted.filter((r) => r < actualReturn).length / nSims * 100;
-  const profitable = sorted.filter((r) => r > 0).length / nSims * 100;
+  const rank = simReturns.filter((r) => r < actualReturn).length / nSims * 100;
+  const profitable = simReturns.filter((r) => r > 0).length / nSims * 100;
 
   return {
     actualReturn: actualReturn * 100,
@@ -69,42 +88,53 @@ export function monteCarloBootstrap(tradeReturns: number[], nSims = 10000): {
   };
 }
 
-// ─── Value at Risk ───
-export type VaRResult = {
-  historical: number;
-  parametric: number;
-  cornishFisher: number;
-  cvar: number;
+// ─── Expected Shortfall (ES) + VaR ───
+// Basel III/IV mandates ES over VaR. ES = avg loss beyond VaR threshold.
+// CF expansion used internally for analytical computation.
+export type RiskResult = {
+  // Expected Shortfall (primary — Basel III/IV standard)
+  es97_5: number;        // ES at 97.5% (Basel standard)
+  es95: number;          // ES at 95%
+  // VaR (secondary — computed via Cornish-Fisher)
+  varHistorical: number;
+  varCornishFisher: number;
 };
 
-export function computeVaR(returns: number[], confidence = 0.95): VaRResult {
-  const alpha = 1 - confidence;
+export function computeRisk(returns: number[]): RiskResult {
+  if (returns.length < 10) {
+    return { es97_5: 0, es95: 0, varHistorical: 0, varCornishFisher: 0 };
+  }
+
   const mu = mean(returns);
   const sigma = stddev(returns);
-  const z = normalInverse(alpha);
 
-  // Historical
-  const historical = percentile(returns, alpha * 100);
+  // Historical VaR at 95%
+  const varHistorical = percentile(returns, 5);
 
-  // Parametric (Gaussian)
-  const parametric = mu + z * sigma;
-
-  // Cornish-Fisher (skew + kurtosis adjusted)
+  // Cornish-Fisher VaR at 95% (skew + kurtosis adjusted)
   const s = skewness(returns);
   const k = kurtosis(returns);
-  const zCF = z + (z * z - 1) * s / 6 + (z * z * z - 3 * z) * k / 24
-    - (2 * z * z * z - 5 * z) * s * s / 36;
-  const cornishFisher = mu + zCF * sigma;
+  const z95 = normalInverse(0.05);
+  const zCF = z95 + (z95 * z95 - 1) * s / 6 + (z95 ** 3 - 3 * z95) * k / 24
+    - (2 * z95 ** 3 - 5 * z95) * s * s / 36;
+  const varCornishFisher = mu + zCF * sigma;
 
-  // CVaR (Expected Shortfall)
-  const belowVaR = returns.filter((r) => r <= historical);
-  const cvar = belowVaR.length > 0 ? mean(belowVaR) : historical;
+  // Expected Shortfall at 95%: mean of returns below VaR
+  const belowVar95 = returns.filter((r) => r <= varHistorical);
+  const es95 = belowVar95.length > 0 ? mean(belowVar95) : varHistorical;
 
-  return { historical, parametric, cornishFisher, cvar };
+  // Expected Shortfall at 97.5% (Basel III standard)
+  const var97_5 = percentile(returns, 2.5);
+  const belowVar97_5 = returns.filter((r) => r <= var97_5);
+  const es97_5 = belowVar97_5.length > 0 ? mean(belowVar97_5) : var97_5;
+
+  return { es97_5, es95, varHistorical, varCornishFisher };
 }
 
 // ─── VPIN Correlation ───
-// Correlate VPIN levels with subsequent return magnitudes
+// Easley, López de Prado, O'Hara (2012). NOTE: Andersen & Bondarenko (2014)
+// showed VPIN is mechanically correlated with volume. Treat as directional
+// heuristic for order flow imbalance, not a predictive signal.
 export function vpinCorrelation(
   vpinValues: (number | null)[],
   returns: number[],
@@ -115,7 +145,6 @@ export function vpinCorrelation(
   for (let i = 0; i < vpinValues.length - lookahead; i++) {
     const v = vpinValues[i];
     if (v === null) continue;
-    // Average absolute return over next `lookahead` bars
     let sumAbs = 0;
     for (let j = 1; j <= lookahead && i + j < returns.length; j++) {
       sumAbs += Math.abs(returns[i + j]);
@@ -127,7 +156,6 @@ export function vpinCorrelation(
     return { correlation: 0, highVpinAvgMove: 0, lowVpinAvgMove: 0, ratio: 1 };
   }
 
-  // Split by VPIN quintile
   const sorted = [...validPairs].sort((a, b) => a.vpin - b.vpin);
   const q80 = Math.floor(sorted.length * 0.8);
   const highVpin = sorted.slice(q80);
@@ -136,7 +164,6 @@ export function vpinCorrelation(
   const highAvg = mean(highVpin.map((p) => p.move));
   const lowAvg = mean(lowVpin.map((p) => p.move));
 
-  // Simple correlation
   const vpins = validPairs.map((p) => p.vpin);
   const moves = validPairs.map((p) => p.move);
   const mV = mean(vpins), mM = mean(moves);

@@ -45,7 +45,7 @@ export default function IndicatorPanel({ indicators }: { indicators: IndicatorDa
 
       {vpinVal !== null && (
         <div className="flex justify-between">
-          <span className="text-[#8888a0]">VPIN</span>
+          <span className="text-[#8888a0]">VPIN <span className="text-[6px] opacity-60">heuristic</span></span>
           <span className={vpinVal > 0.45 ? "text-[#ef4444] font-bold" : ""}>
             {vpinVal.toFixed(3)} {vpinVal > 0.45 ? "TOXIC" : ""}
           </span>

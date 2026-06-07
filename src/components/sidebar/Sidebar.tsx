@@ -48,7 +48,7 @@ export default function Sidebar({
       </Collapsible>
 
       {indicators?.composite && (
-        <Collapsible title="Academic Composite">
+        <Collapsible title="QuantDash Composite">
           <CompositePanel composite={indicators.composite} />
         </Collapsible>
       )}
