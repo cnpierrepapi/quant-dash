@@ -53,7 +53,9 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
   const [overlays, setOverlays] = useState<Set<string>>(
     new Set(content.chartConfig.overlays || [])
   );
-  const [showComposite, setShowComposite] = useState(content.chartConfig.showComposite || false);
+  // Don't auto-show composite on mount — wait for user interaction to avoid
+  // race condition where indicators haven't loaded yet (causes crash)
+  const [showComposite, setShowComposite] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   // Determine which overlay buttons to show based on lesson config
@@ -89,16 +91,19 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
     const cfg = content.chartConfig;
     const suggested = cfg.overlays || [];
 
+    const friendlyName = (key: string) =>
+      ALL_OVERLAYS.find((o) => o.key === key)?.label || key;
+
     if (suggested.length > 0) {
       s.push({
-        instruction: `Toggle ${suggested[0].replace("ema", "EMA ").replace("sma", "SMA ").replace("bb", "BB ").replace("vwap", "VWAP").replace("Upper", " Upper").replace("Lower", " Lower")} overlay on the chart.`,
+        instruction: `Toggle ${friendlyName(suggested[0])} overlay on the chart.`,
         validate: `overlay_${suggested[0]}_on`,
-        hint: `Click the "${ALL_OVERLAYS.find((o) => o.key === suggested[0])?.label || suggested[0]}" button below the chart.`,
+        hint: `Click the "${friendlyName(suggested[0])}" button below the chart.`,
       });
     }
     if (suggested.length > 1) {
       s.push({
-        instruction: `Now also enable ${suggested[1].replace("ema", "EMA ").replace("sma", "SMA ").replace("bb", "BB ").replace("vwap", "VWAP").replace("Upper", " Upper").replace("Lower", " Lower")} to compare.`,
+        instruction: `Now also enable ${friendlyName(suggested[1])} to compare.`,
         validate: `overlay_${suggested[1]}_on`,
         hint: `Click the second overlay button.`,
       });
