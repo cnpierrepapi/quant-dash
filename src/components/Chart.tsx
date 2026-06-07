@@ -12,6 +12,11 @@ import {
   LineStyle,
   type Time,
 } from "lightweight-charts";
+import {
+  type Candle as IndicatorCandle,
+  ema, sma, rsi, macd, bollinger, atr, vwap,
+  supportResistance, parkinsonVol, vpinSimple, compositeScore,
+} from "@/lib/indicators";
 
 // ── Types ──
 type Candle = {
@@ -21,6 +26,7 @@ type Candle = {
   low: number;
   close: number;
   volume: number;
+  takerBuyVol: number;
 };
 
 type IndicatorData = {
@@ -102,18 +108,60 @@ export default function Chart() {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [priceChange, setPriceChange] = useState<number>(0);
 
-  // ── Fetch data ──
+  // ── Fetch data direct from Binance (no server proxy needed) ──
   const fetchData = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
 
-      const [candleRes, indRes] = await Promise.all([
-        fetch(`/api/klines?symbol=${symbol}&interval=${interval}&limit=500`),
-        fetch(`/api/indicators?symbol=${symbol}&interval=${interval}&limit=500`),
-      ]);
+      const res = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`
+      );
+      const raw = await res.json();
 
-      const candles: Candle[] = await candleRes.json();
-      const inds: IndicatorData = await indRes.json();
+      if (!Array.isArray(raw)) {
+        setLoading(false);
+        return null;
+      }
+
+      const candles: Candle[] = raw.map((k: number[]) => ({
+        time: Math.floor(k[0] / 1000),
+        open: parseFloat(String(k[1])),
+        high: parseFloat(String(k[2])),
+        low: parseFloat(String(k[3])),
+        close: parseFloat(String(k[4])),
+        volume: parseFloat(String(k[5])),
+        takerBuyVol: parseFloat(String(k[9])),
+      }));
+
+      // Compute indicators client-side
+      const indCandles: IndicatorCandle[] = candles.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume,
+        takerBuyVol: c.takerBuyVol ?? 0,
+      }));
+      const closes = candles.map((c) => c.close);
+
+      const inds: IndicatorData = {
+        ema20: ema(closes, 20),
+        ema50: ema(closes, 50),
+        ema200: ema(closes, 200),
+        sma20: sma(closes, 20),
+        sma50: sma(closes, 50),
+        sma200: sma(closes, 200),
+        rsi: rsi(closes, 14),
+        macd: macd(closes),
+        bollinger: bollinger(closes, 20, 2),
+        atr: atr(indCandles, 14),
+        vwap: vwap(indCandles),
+        parkinsonVol: parkinsonVol(indCandles, 30),
+        vpin: vpinSimple(indCandles, 50),
+        supportResistance: supportResistance(indCandles, 20),
+        composite: compositeScore(indCandles),
+      };
 
       candlesRef.current = candles;
       setIndicators(inds);
