@@ -2,6 +2,7 @@
 
 import type { LessonContent } from "@/data/academy/lessons";
 import LessonNav from "./LessonNav";
+import SandboxWrapper from "./SandboxWrapper";
 
 function renderMarkdown(text: string): React.ReactNode[] {
   const lines = text.split("\n");
@@ -107,17 +108,8 @@ export default function LessonRenderer({
         {renderMarkdown(content.body)}
       </div>
 
-      {/* Chart config display */}
-      {content.chartConfig.overlays && content.chartConfig.overlays.length > 0 && (
-        <div className="mt-6 p-3 bg-[#111118] border border-[#2a2a3a] rounded-lg">
-          <div className="text-[10px] text-[#8888a0] uppercase font-bold mb-1">Try it in QuantDash</div>
-          <div className="text-xs text-[#e8e8ef]">
-            Enable overlays: {content.chartConfig.overlays.join(", ")}
-            {content.chartConfig.interval && ` | Timeframe: ${content.chartConfig.interval}`}
-            {content.chartConfig.showComposite && " | Check the composite score panel"}
-          </div>
-        </div>
-      )}
+      {/* Interactive sandbox */}
+      <SandboxWrapper content={content} />
 
       <LessonNav prev={prev} next={next} moduleName={moduleName} />
     </div>
