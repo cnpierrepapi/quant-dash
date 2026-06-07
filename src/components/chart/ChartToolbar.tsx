@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const SYMBOLS = [
   "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "AVAXUSDT",
   "ADAUSDT", "DOGEUSDT", "LINKUSDT", "XRPUSDT", "DOTUSDT",
@@ -69,7 +71,13 @@ export default function ChartToolbar({
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-2 text-xs text-[#8888a0]">
+      <div className="ml-auto flex items-center gap-3 text-xs text-[#8888a0]">
+        <Link
+          href="/academy"
+          className="px-3 py-1 rounded bg-[#1a1a24] text-[#6366f1] border border-[#2a2a3a] hover:bg-[#6366f1] hover:text-white transition-colors font-medium"
+        >
+          Academy
+        </Link>
         {loading && <span className="animate-pulse text-[#eab308]">fetching...</span>}
         {lastUpdate && <span>updated {lastUpdate.toLocaleTimeString()}</span>}
         <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" title="Live polling" />
