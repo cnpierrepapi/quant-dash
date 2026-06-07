@@ -15,8 +15,15 @@ import {
 
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators, type IndicatorData } from "@/hooks/useIndicators";
+import { useProjection } from "@/hooks/useProjection";
+import { useStrategy } from "@/hooks/useStrategy";
+import { useBacktest } from "@/hooks/useBacktest";
+import { usePerformance } from "@/hooks/usePerformance";
 import ChartToolbar from "./chart/ChartToolbar";
 import Sidebar from "./sidebar/Sidebar";
+import StrategyPanel from "./strategy/StrategyPanel";
+import BacktestPanel from "./backtest/BacktestPanel";
+import PerformanceReport from "./report/PerformanceReport";
 
 // ── Overlay config ──
 const OVERLAY_COLORS: Record<string, { color: string; dashed?: boolean }> = {
@@ -41,32 +48,37 @@ export default function Chart() {
   const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlaySeries = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
   const srLines = useRef<ISeriesApi<"Line">[]>([]);
+  const projSeries = useRef<ISeriesApi<"Line">[]>([]);
 
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [interval, setInterval] = useState("1h");
   const [overlays, setOverlays] = useState<Set<string>>(new Set(["ema20", "ema50"]));
   const [showSR, setShowSR] = useState(true);
+  const [showReport, setShowReport] = useState(false);
 
+  // Hooks
   const { candles, loading, lastUpdate, currentPrice, priceChange } = useCandles(symbol, interval);
   const indicators = useIndicators(candles);
+  const projection = useProjection(candles);
+  const strategyHook = useStrategy();
+  const backtest = useBacktest();
+  const metrics = usePerformance(backtest.result, candles);
 
   // ── Build chart ──
   const buildChart = useCallback(() => {
     if (!chartRef.current || candles.length === 0) return;
-
     if (chartApi.current) {
       chartApi.current.remove();
       chartApi.current = null;
       overlaySeries.current.clear();
       srLines.current = [];
+      projSeries.current = [];
     }
 
     const chart = createChart(chartRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "#0a0a0f" },
-        textColor: "#8888a0",
-        fontFamily: "var(--font-geist-mono), monospace",
-        fontSize: 11,
+        textColor: "#8888a0", fontFamily: "var(--font-geist-mono), monospace", fontSize: 11,
       },
       grid: { vertLines: { color: "#1a1a24" }, horzLines: { color: "#1a1a24" } },
       crosshair: {
@@ -75,8 +87,7 @@ export default function Chart() {
       },
       rightPriceScale: { borderColor: "#2a2a3a", scaleMargins: { top: 0.1, bottom: 0.25 } },
       timeScale: { borderColor: "#2a2a3a", timeVisible: true, secondsVisible: false },
-      width: chartRef.current.clientWidth,
-      height: chartRef.current.clientHeight,
+      width: chartRef.current.clientWidth, height: chartRef.current.clientHeight,
     });
     chartApi.current = chart;
 
@@ -89,6 +100,27 @@ export default function Chart() {
       time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close,
     })) as CandlestickData[]);
     candleSeries.current = cs;
+
+    // Trade markers
+    if (backtest.result && backtest.result.trades.length > 0) {
+      const markers = backtest.result.trades.flatMap((t) => [
+        {
+          time: t.entryTime as Time,
+          position: "belowBar" as const,
+          color: "#22c55e",
+          shape: "arrowUp" as const,
+          text: "BUY",
+        },
+        {
+          time: t.exitTime as Time,
+          position: "aboveBar" as const,
+          color: "#ef4444",
+          shape: "arrowDown" as const,
+          text: "SELL",
+        },
+      ]);
+      cs.setMarkers(markers.sort((a, b) => (a.time as number) - (b.time as number)));
+    }
 
     const vs = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "vol" });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
@@ -107,9 +139,9 @@ export default function Chart() {
     });
     ro.observe(chartRef.current);
     return () => ro.disconnect();
-  }, [candles]);
+  }, [candles, backtest.result]);
 
-  // ── Update overlays ──
+  // ── Update overlays + projection ──
   const updateOverlays = useCallback(() => {
     if (!chartApi.current || !indicators) return;
     const chart = chartApi.current;
@@ -118,7 +150,10 @@ export default function Chart() {
     overlaySeries.current.clear();
     srLines.current.forEach((s) => { try { chart.removeSeries(s); } catch { /* ok */ } });
     srLines.current = [];
+    projSeries.current.forEach((s) => { try { chart.removeSeries(s); } catch { /* ok */ } });
+    projSeries.current = [];
 
+    // Indicator overlays
     for (const key of overlays) {
       const cfg = OVERLAY_COLORS[key];
       if (!cfg) continue;
@@ -136,6 +171,7 @@ export default function Chart() {
       overlaySeries.current.set(key, series);
     }
 
+    // S/R lines
     if (showSR && indicators.supportResistance) {
       for (const level of indicators.supportResistance.slice(0, 6)) {
         const s = chart.addLineSeries({
@@ -150,15 +186,55 @@ export default function Chart() {
         srLines.current.push(s);
       }
     }
-  }, [candles, indicators, overlays, showSR]);
 
-  // Build on candle change
+    // Projection fan
+    if (projection.enabled && projection.result && projection.result.fan.length > 0) {
+      const fan = projection.result.fan;
+
+      // P10-P90 band (wide, faint)
+      const bandOuter = chart.addLineSeries({
+        color: "#6366f120", lineWidth: 1, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      bandOuter.setData(fan.map((f) => ({ time: f.time as Time, value: f.p90 })));
+      projSeries.current.push(bandOuter);
+
+      const bandOuterLow = chart.addLineSeries({
+        color: "#6366f120", lineWidth: 1, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      bandOuterLow.setData(fan.map((f) => ({ time: f.time as Time, value: f.p10 })));
+      projSeries.current.push(bandOuterLow);
+
+      // P25-P75 band (tighter, brighter)
+      const bandInner = chart.addLineSeries({
+        color: "#6366f140", lineWidth: 1, lineStyle: LineStyle.Dotted,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      bandInner.setData(fan.map((f) => ({ time: f.time as Time, value: f.p75 })));
+      projSeries.current.push(bandInner);
+
+      const bandInnerLow = chart.addLineSeries({
+        color: "#6366f140", lineWidth: 1, lineStyle: LineStyle.Dotted,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      bandInnerLow.setData(fan.map((f) => ({ time: f.time as Time, value: f.p25 })));
+      projSeries.current.push(bandInnerLow);
+
+      // Median line (bold)
+      const median = chart.addLineSeries({
+        color: "#6366f1", lineWidth: 2,
+        priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false,
+      });
+      median.setData(fan.map((f) => ({ time: f.time as Time, value: f.p50 })));
+      projSeries.current.push(median);
+    }
+  }, [candles, indicators, overlays, showSR, projection.enabled, projection.result]);
+
   useEffect(() => { buildChart(); }, [buildChart]);
-
-  // Update overlays on indicator/overlay change
   useEffect(() => { updateOverlays(); }, [updateOverlays]);
 
-  // Update data in-place on polling (avoid full chart rebuild)
+  // Update data in-place on polling
   useEffect(() => {
     if (!candleSeries.current || candles.length === 0) return;
     candleSeries.current.setData(candles.map((c) => ({
@@ -173,11 +249,11 @@ export default function Chart() {
   }, [candles]);
 
   const toggleOverlay = (key: string) => {
-    setOverlays((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
+    setOverlays((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  };
+
+  const handleRunBacktest = () => {
+    if (indicators) backtest.run(strategyHook.strategy, candles, indicators);
   };
 
   return (
@@ -188,14 +264,60 @@ export default function Chart() {
         currentPrice={currentPrice} priceChange={priceChange}
         loading={loading} lastUpdate={lastUpdate}
       />
+
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 relative">
-          <div ref={chartRef} className="absolute inset-0" />
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 relative">
+            <div ref={chartRef} className="absolute inset-0" />
+          </div>
+
+          {/* Strategy + Backtest panels below chart */}
+          <StrategyPanel
+            strategy={strategyHook.strategy}
+            dslText={strategyHook.dslText}
+            parseError={strategyHook.parseError}
+            onBuilderChange={strategyHook.updateFromBuilder}
+            onDSLChange={strategyHook.updateFromDSL}
+            onFileUpload={strategyHook.loadFile}
+            presetNames={strategyHook.presetNames}
+            onLoadPreset={strategyHook.loadPreset}
+            onRunBacktest={handleRunBacktest}
+            backtestRunning={backtest.running}
+          />
+
+          {backtest.result && (
+            <BacktestPanel result={backtest.result} metrics={metrics} onClear={backtest.clear} />
+          )}
+
+          {backtest.result && metrics && (
+            <div className="flex items-center justify-between px-4 py-1 border-t border-[#2a2a3a] bg-[#111118]">
+              <button
+                onClick={() => setShowReport(!showReport)}
+                className="text-xs text-[#6366f1] hover:text-[#818cf8] font-medium"
+              >
+                {showReport ? "Hide" : "Show"} Academic Report
+              </button>
+            </div>
+          )}
+
+          {showReport && backtest.result && metrics && indicators && (
+            <PerformanceReport metrics={metrics} result={backtest.result} candles={candles} indicators={indicators} />
+          )}
         </div>
+
         <Sidebar
           indicators={indicators}
           overlays={overlays} onToggleOverlay={toggleOverlay}
           showSR={showSR} onToggleSR={() => setShowSR(!showSR)}
+          projectionEnabled={projection.enabled}
+          onToggleProjection={projection.toggle}
+          projectionHorizon={projection.horizon}
+          onProjectionHorizonChange={projection.setHorizon}
+          projectionPaths={projection.nPaths}
+          onProjectionPathsChange={projection.setNPaths}
+          projectionComputing={projection.computing}
+          onProjectionRegenerate={projection.regenerate}
+          projectionResult={projection.result}
         />
       </div>
     </div>
