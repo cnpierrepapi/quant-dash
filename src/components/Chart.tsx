@@ -263,11 +263,12 @@ export default function Chart() {
         interval={interval} onIntervalChange={setInterval}
         currentPrice={currentPrice} priceChange={priceChange}
         loading={loading} lastUpdate={lastUpdate}
+        candleCount={candles.length}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 relative">
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="min-h-[420px] flex-shrink-0 relative">
             <div ref={chartRef} className="absolute inset-0" />
           </div>
 

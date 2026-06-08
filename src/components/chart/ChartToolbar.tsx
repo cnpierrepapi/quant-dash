@@ -16,7 +16,7 @@ const INTERVALS = [
 
 export default function ChartToolbar({
   symbol, onSymbolChange, interval, onIntervalChange,
-  currentPrice, priceChange, loading, lastUpdate,
+  currentPrice, priceChange, loading, lastUpdate, candleCount,
 }: {
   symbol: string;
   onSymbolChange: (s: string) => void;
@@ -26,6 +26,7 @@ export default function ChartToolbar({
   priceChange: number;
   loading: boolean;
   lastUpdate: Date | null;
+  candleCount?: number;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b border-[#2a2a3a] bg-[#111118]">
@@ -79,6 +80,9 @@ export default function ChartToolbar({
           Academy
         </Link>
         {loading && <span className="animate-pulse text-[#eab308]">fetching...</span>}
+        {candleCount !== undefined && candleCount > 0 && (
+          <span className="text-[#6366f1]">{candleCount.toLocaleString()} candles</span>
+        )}
         {lastUpdate && <span>updated {lastUpdate.toLocaleTimeString()}</span>}
         <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" title="Live polling" />
       </div>
