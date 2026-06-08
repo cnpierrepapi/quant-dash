@@ -6,6 +6,8 @@ export type TutorialStep = {
   hint?: string;
 };
 
+export type SandboxType = "chart" | "rsi-chart" | "strategy-lab";
+
 export type LessonContent = {
   body: string;
   chartConfig: {
@@ -16,6 +18,9 @@ export type LessonContent = {
     showComposite?: boolean;
   };
   tutorialSteps?: TutorialStep[];
+  sandboxType?: SandboxType;
+  staticDataKey?: string;
+  sampleDSL?: string;
 };
 
 export const LESSONS: Record<string, Record<string, LessonContent>> = {
@@ -169,11 +174,13 @@ Brock, Lakonishok & LeBaron (1992) found MA crossover strategies produced signif
 ## In QuantDash
 Toggle EMA 20 (amber) and EMA 50 (blue) in the overlay panel. Watch how crossovers align with major trend changes. Notice that in sideways markets, they produce many false signals — this is why we add filters (Lesson 23).`,
       chartConfig: { overlays: ["ema20", "ema50", "sma20", "sma50"] },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 (amber) — the exponential average reacts quickly to recent prices.", validate: "overlay_ema20_on", hint: "Click the EMA 20 button below the chart." },
-        { instruction: "Now toggle SMA 20 (amber dashed). Compare how the simple average lags behind the EMA on the same period.", validate: "overlay_sma20_on", hint: "Click the SMA 20 button." },
-        { instruction: "Add EMA 50 (blue). Where EMA 20 crosses above EMA 50 is the 'golden cross' — a classic buy signal.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Notice: in sideways markets, both MAs produce many false crossovers. This is why filters matter (Lesson 23).", validate: "observation_acknowledged", hint: "Click 'Got it' after observing." },
+        { instruction: "Toggle EMA 20 (amber). Watch how the exponential average hugs price closely.", validate: "overlay_ema20_on", hint: "Click the EMA 20 button below the chart." },
+        { instruction: "Now add SMA 20 (dashed amber). See how it lags behind the EMA — same period, slower response.", validate: "overlay_sma20_on", hint: "Click the SMA 20 button." },
+        { instruction: "Enable EMA 50 (blue). Find where EMA 20 crosses above it — that's the golden cross buy signal.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
+        { instruction: "Now scroll right to find the death cross — where EMA 20 crosses below EMA 50. Notice how the chart auto-marks these crossovers.", validate: "observation_acknowledged", hint: "Click 'Got it' after finding both crossovers." },
       ],
     },
 
@@ -204,10 +211,13 @@ RSI contributes 15% weight to the academic composite. It's labeled OVERBOUGHT (>
 ## In QuantDash
 Check the RSI gauge in the Indicators panel. The visual bar shows current positioning. Use it as a filter — don't trade long when RSI > 70, don't trade short when RSI < 30.`,
       chartConfig: { overlays: ["ema20"], showComposite: true },
+      sandboxType: "rsi-chart",
+      staticDataKey: "rsi",
       tutorialSteps: [
-        { instruction: "Enable EMA 20 as a trend reference line.", validate: "overlay_ema20_on", hint: "Click EMA 20 below." },
-        { instruction: "Open the composite panel — find the RSI reading. Above 70 = overbought, below 30 = oversold.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
-        { instruction: "Key lesson: RSI < 30 doesn't mean 'buy now.' Wait for RSI to cross BACK above 30 — the transition is the signal.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Enable EMA 20 as a trend reference line on the price chart.", validate: "overlay_ema20_on", hint: "Click EMA 20 below." },
+        { instruction: "Show the RSI panel below the price chart to see momentum oscillating 0-100.", validate: "rsi_panel_shown", hint: "Click 'Show RSI Panel'." },
+        { instruction: "Find the red overbought zone (RSI > 70). Price is over-extended and due for a pullback.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting it." },
+        { instruction: "Find where RSI crosses back ABOVE 30 from the green oversold zone. That transition — not just being below 30 — is the real buy signal.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
@@ -275,11 +285,13 @@ Bollinger position contributes 10% weight. At upper band = bearish bias, at lowe
 ## In QuantDash
 Toggle "BB Upper" and "BB Lower" in overlays. The indigo bands show the 2-sigma envelope. Watch how price oscillates between them in range markets but walks the upper band in strong trends.`,
       chartConfig: { overlays: ["bbUpper", "bbLower"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "bollinger",
       tutorialSteps: [
-        { instruction: "Toggle BB Upper (indigo) — the upper volatility envelope at +2 standard deviations.", validate: "overlay_bbUpper_on", hint: "Click BB Upper." },
-        { instruction: "Add BB Lower to complete the bands. Price oscillates within this 2-sigma channel.", validate: "overlay_bbLower_on", hint: "Click BB Lower." },
-        { instruction: "Look for a 'squeeze' — where the bands narrow tightly. This low-vol compression often precedes a breakout.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting a squeeze." },
-        { instruction: "Open composite to see the Bollinger position signal. At upper band = bearish bias, lower = bullish.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Toggle BB Upper (indigo) — the upper volatility band at +2 standard deviations.", validate: "overlay_bbUpper_on", hint: "Click BB Upper." },
+        { instruction: "Add BB Lower. The bands create a dynamic volatility channel around price.", validate: "overlay_bbLower_on", hint: "Click BB Lower." },
+        { instruction: "Click 'Highlight Squeeze' to paint the zone where bands contracted — low vol compression.", validate: "squeeze_highlighted", hint: "Click the Highlight Squeeze button." },
+        { instruction: "Observe the breakout: after the squeeze, price pierces the upper band with expanding vol. Squeezes predict breakouts.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
@@ -921,10 +933,14 @@ It's best-effort — complex Python logic won't parse perfectly. But simple cond
 ## Bidirectional Sync
 Whatever you type in the code editor automatically updates the visual builder, and vice versa. You can start in one and refine in the other.`,
       chartConfig: { overlays: ["ema20", "ema50"] },
+      sandboxType: "strategy-lab",
+      staticDataKey: "strategy-upload",
+      sampleDSL: "buy when ema(20) crosses_above ema(50) and rsi(14) < 50\nsell when ema(20) crosses_below ema(50) or rsi(14) > 70",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 — DSL strategies reference indicators like ema(20), rsi(14), bb_upper.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add EMA 50. The DSL command `buy when ema(20) crosses_above ema(50)` references these exact overlays.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "The visual builder and code editor stay in sync — changes in one automatically update the other.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Click 'Load Sample Strategy' to populate the editor with a golden-cross + RSI filter.", validate: "sample_loaded", hint: "Click the Load Sample Strategy button." },
+        { instruction: "Read the parsed conditions below. The parser extracted entry AND exit rules from the DSL text.", validate: "observation_acknowledged", hint: "Click 'Got it' after reading the conditions." },
+        { instruction: "Click 'Run Backtest' to execute the strategy on the static dataset and see trade results.", validate: "backtest_complete", hint: "Click Run Backtest." },
+        { instruction: "Review: trade markers appear on the chart (green = buy, red = sell). Check win rate and total return below.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
