@@ -1,0 +1,20 @@
+//@version=5
+strategy("RSI Mean Reversion", overlay=true)
+
+// Inputs
+rsi_length = 14
+rsi_ob = 70
+rsi_os = 30
+
+// Indicators
+rsi_val = ta.rsi(close, 14)
+fast = ta.ema(close, 20)
+slow = ta.ema(close, 50)
+
+// Entry: RSI crosses above oversold + trend confirmation
+if ta.crossover(rsi_val, 30)
+    strategy.entry("Long", strategy.long)
+
+// Exit: RSI crosses above overbought
+if ta.crossover(rsi_val, 70)
+    strategy.close("Long")

@@ -12,7 +12,7 @@ const STRATEGY_TABS = [
 ];
 
 export default function StrategyPanel({
-  strategy, dslText, parseError,
+  strategy, dslText, parseError, sourceFormat,
   onBuilderChange, onDSLChange, onFileUpload,
   presetNames, onLoadPreset,
   onRunBacktest, backtestRunning,
@@ -20,6 +20,7 @@ export default function StrategyPanel({
   strategy: Strategy;
   dslText: string;
   parseError: string | null;
+  sourceFormat?: "dsl" | "pine" | "py";
   onBuilderChange: (s: Strategy) => void;
   onDSLChange: (text: string) => void;
   onFileUpload: (content: string, filename: string) => void;
@@ -74,6 +75,7 @@ export default function StrategyPanel({
             onTextChange={onDSLChange}
             onFileUpload={onFileUpload}
             parseError={parseError}
+            sourceFormat={sourceFormat}
           />
         )}
       </div>

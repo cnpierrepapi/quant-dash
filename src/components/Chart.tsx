@@ -277,6 +277,7 @@ export default function Chart() {
             strategy={strategyHook.strategy}
             dslText={strategyHook.dslText}
             parseError={strategyHook.parseError}
+            sourceFormat={strategyHook.sourceFormat}
             onBuilderChange={strategyHook.updateFromBuilder}
             onDSLChange={strategyHook.updateFromDSL}
             onFileUpload={strategyHook.loadFile}

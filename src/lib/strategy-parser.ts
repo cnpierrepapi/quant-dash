@@ -1,5 +1,6 @@
-// Strategy DSL parser, .py file parser, and presets
+// Strategy DSL parser, Pine Script parser, .py file parser, and presets
 // DSL syntax: buy when ema(20) crosses_above ema(50) and rsi(14) < 30
+// Pine: ta.crossover(ta.ema(close, 20), ta.ema(close, 50)) => strategy.entry(...)
 
 import {
   type Strategy, type Condition, type ConditionGroup, type Operand,
@@ -27,6 +28,163 @@ function parseIndicatorRef(token: string): Operand | null {
   const num = parseFloat(token);
   if (!isNaN(num)) return { type: "literal", value: num };
   return null;
+}
+
+// ─── Detect if text is Pine Script ───
+export function isPineScript(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("//@version") ||
+    lower.includes("strategy(") ||
+    lower.includes("ta.crossover") ||
+    lower.includes("ta.crossunder") ||
+    lower.includes("ta.ema") ||
+    lower.includes("ta.sma") ||
+    lower.includes("ta.rsi") ||
+    lower.includes("strategy.entry") ||
+    lower.includes("strategy.close")
+  );
+}
+
+// ─── Parse Pine Script indicator expression ───
+// Resolves: ta.ema(close, 20), ta.sma(close, 50), ta.rsi(close, 14),
+//           ta.atr(14), ta.vwap, ta.macd, ta.bb(close, 20, 2)
+function resolvePineIndicator(expr: string, vars: Map<string, Operand>): Operand | null {
+  const e = expr.trim();
+
+  // Check variable references first
+  if (vars.has(e)) return vars.get(e)!;
+
+  // close / open / high / low
+  if (e === "close" || e === "open" || e === "high" || e === "low") return { type: "price" };
+
+  // Literal number
+  const num = parseFloat(e);
+  if (!isNaN(num) && /^-?\d+(\.\d+)?$/.test(e)) return { type: "literal", value: num };
+
+  // ta.ema(close, 20) / ta.sma(close, 50)
+  const emaMatch = e.match(/^ta\.(ema|sma)\s*\(\s*\w+\s*,\s*(\d+)\s*\)$/i);
+  if (emaMatch) return { type: "indicator", ref: { name: emaMatch[1].toLowerCase(), params: [parseInt(emaMatch[2])] } };
+
+  // ta.rsi(close, 14) or ta.rsi(14)
+  const rsiMatch = e.match(/^ta\.rsi\s*\(\s*(?:\w+\s*,\s*)?(\d+)\s*\)$/i);
+  if (rsiMatch) return { type: "indicator", ref: { name: "rsi", params: [parseInt(rsiMatch[1])] } };
+
+  // ta.atr(14)
+  const atrMatch = e.match(/^ta\.atr\s*\(\s*(\d+)\s*\)$/i);
+  if (atrMatch) return { type: "indicator", ref: { name: "atr", params: [parseInt(atrMatch[1])] } };
+
+  // ta.vwap or ta.vwap(close)
+  if (/^ta\.vwap/i.test(e)) return { type: "indicator", ref: { name: "vwap", params: [] } };
+
+  // ta.macd(close, 12, 26, 9) — returns histogram
+  if (/^ta\.macd/i.test(e)) return { type: "indicator", ref: { name: "macd_histogram", params: [12, 26, 9] } };
+
+  // ta.bb(close, 20, 2) — we'll map to bb_upper by default
+  if (/^ta\.bb/i.test(e)) return { type: "indicator", ref: { name: "bb_upper", params: [20, 2] } };
+
+  // input.int(20) or input(20) — treat as literal
+  const inputMatch = e.match(/^input(?:\.\w+)?\s*\(\s*(\d+)/i);
+  if (inputMatch) return { type: "literal", value: parseInt(inputMatch[1]) };
+
+  return null;
+}
+
+// ─── Parse Pine Script ───
+export function parsePine(text: string): Strategy {
+  const strategy = createEmptyStrategy();
+  const lines = text.split("\n").map((l) => l.trim());
+
+  // Phase 1: Resolve variable assignments
+  // e.g., fast = ta.ema(close, 20)
+  const vars = new Map<string, Operand>();
+
+  for (const line of lines) {
+    if (line.startsWith("//") || line.startsWith("#")) continue;
+
+    const assignMatch = line.match(/^(\w+)\s*=\s*(.+)$/);
+    if (assignMatch) {
+      const varName = assignMatch[1].toLowerCase();
+      const expr = assignMatch[2].replace(/\/\/.*$/, "").trim();
+
+      // Skip strategy() / indicator() declarations
+      if (expr.startsWith("strategy(") || expr.startsWith("indicator(")) continue;
+
+      const resolved = resolvePineIndicator(expr, vars);
+      if (resolved) vars.set(varName, resolved);
+    }
+  }
+
+  // Phase 2: Find conditions and strategy actions
+  // Track which context we're building conditions for
+  let pendingConditions: Condition[] = [];
+  let pendingTarget: "entry" | "exit" | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const l = line.toLowerCase().replace(/\/\/.*$/, "").trim();
+    if (!l || l.startsWith("//") || l.startsWith("#")) continue;
+
+    // ta.crossover(a, b) in an if-statement
+    const crossoverMatch = l.match(/ta\.crossover\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/);
+    const crossunderMatch = l.match(/ta\.crossunder\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/);
+
+    if (crossoverMatch || crossunderMatch) {
+      const match = crossoverMatch || crossunderMatch;
+      const op: Operator = crossoverMatch ? "crosses_above" : "crosses_below";
+      const leftExpr = match![1].trim();
+      const rightExpr = match![2].trim();
+
+      const left = resolvePineIndicator(leftExpr, vars);
+      const right = resolvePineIndicator(rightExpr, vars);
+
+      if (left && right) {
+        const cond: Condition = { id: nextConditionId(), left, op, right };
+
+        // Look at same line + next lines for strategy.entry / strategy.close
+        const context = [l, ...lines.slice(i + 1, i + 3).map((x) => x.toLowerCase())].join(" ");
+
+        if (context.includes("strategy.entry")) {
+          strategy.entryLong.conditions.push(cond);
+        } else if (context.includes("strategy.close") || context.includes("strategy.exit")) {
+          strategy.exitLong.conditions.push(cond);
+        } else {
+          // Guess: crossover = entry, crossunder = exit
+          if (crossoverMatch) strategy.entryLong.conditions.push(cond);
+          else strategy.exitLong.conditions.push(cond);
+        }
+      }
+      continue;
+    }
+
+    // Simple comparison: if fast > slow, if rsi_val < 70, etc.
+    const compMatch = l.match(/if\s+(\w+)\s*([><=!]+)\s*(\w+[\d.]*)/);
+    if (compMatch) {
+      const left = resolvePineIndicator(compMatch[1], vars);
+      const opToken = compMatch[2];
+      const right = resolvePineIndicator(compMatch[3], vars);
+      const op = parseOperator(opToken);
+
+      if (left && op && right) {
+        const cond: Condition = { id: nextConditionId(), left, op, right };
+        const context = [l, ...lines.slice(i + 1, i + 3).map((x) => x.toLowerCase())].join(" ");
+
+        if (context.includes("strategy.entry")) {
+          strategy.entryLong.conditions.push(cond);
+        } else if (context.includes("strategy.close") || context.includes("strategy.exit")) {
+          strategy.exitLong.conditions.push(cond);
+        } else {
+          strategy.entryLong.conditions.push(cond);
+        }
+      }
+    }
+  }
+
+  // Extract strategy name from strategy() call
+  const nameMatch = text.match(/strategy\s*\(\s*["']([^"']+)["']/);
+  if (nameMatch) strategy.name = nameMatch[1];
+
+  return strategy;
 }
 
 // ─── Map operator tokens ───
@@ -173,6 +331,8 @@ export const PRESETS: Record<string, Strategy> = {
   "RSI Oversold Bounce": parseDSL("buy when rsi(14) crosses_above 30\nsell when rsi(14) crosses_above 70"),
   "BB Mean Reversion": parseDSL("buy when price < bb_lower\nsell when price > bb_upper"),
   "MACD Cross": parseDSL("buy when macd_histogram crosses_above 0\nsell when macd_histogram crosses_below 0"),
+  "MACD + RSI Filter": parseDSL("buy when macd_histogram crosses_above 0 and rsi(14) > 40\nsell when macd_histogram crosses_below 0"),
+  "Triple EMA": parseDSL("buy when ema(20) crosses_above ema(50) and ema(50) > ema(200)\nsell when ema(20) crosses_below ema(50)"),
 };
 
 // Set names
