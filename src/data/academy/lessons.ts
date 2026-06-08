@@ -57,11 +57,13 @@ The backtest engine then runs your rules against real Binance data and produces 
 ## Key Insight
 The signal is the *least important* part of a strategy. Sizing and risk management determine whether a 55% win-rate edge makes you money or blows up your account. We'll prove this with the Kelly Criterion and Monte Carlo simulations later.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Enable EMA 20 — the fast signal line used in the simplest strategies.", validate: "overlay_ema20_on", hint: "Click the EMA 20 button below the chart." },
         { instruction: "Add EMA 50 — the slower trend line. Where these cross is a trade signal.", validate: "overlay_ema50_on", hint: "Click the EMA 50 button." },
-        { instruction: "Find a crossover point on the chart. This is where the simplest strategy would enter or exit.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting a crossover." },
-        { instruction: "Open the composite panel to see how 7 academic indicators combine into one score.", validate: "composite_expanded", hint: "Click 'Show Composite' below." },
+        { instruction: "Find a crossover point on the chart — this is where a strategy would enter or exit.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting a crossover." },
+        { instruction: "Open the composite panel to see how 7 academic indicators combine into one score.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
       ],
     },
 
@@ -99,9 +101,11 @@ Use the interval buttons in the toolbar to switch timeframes. Notice how the sam
 ## The Microstructure Secret
 Our projection engine preserves candle microstructure — not just close prices, but the exact wick-to-body ratios from real historical candles. This means projected future candles *look and behave* like real ones, not just random walks.`,
       chartConfig: { interval: "1d", overlays: [] },
+      sandboxType: "chart",
+      staticDataKey: "general",
       tutorialSteps: [
-        { instruction: "Study the daily candles. Find one with a long upper wick — sellers rejected the high even if it closed green.", validate: "observation_acknowledged", hint: "Click 'Got it' after finding a long-wick candle." },
-        { instruction: "Now find a small-body candle with long wicks on both sides. This indecision pattern often precedes breakouts.", validate: "observation_acknowledged", hint: "Click 'Got it' once you spot one." },
+        { instruction: "Study the candles. Find one with a long upper wick — sellers rejected the high even if it closed green.", validate: "observation_acknowledged", hint: "Click 'Got it' after finding a long-wick candle." },
+        { instruction: "Find a small-body candle with long wicks on both sides. This indecision pattern often precedes breakouts.", validate: "observation_acknowledged", hint: "Click 'Got it' once you spot one." },
       ],
     },
 
@@ -135,6 +139,8 @@ The VPIN indicator (Lesson 15) measures order flow *toxicity* — whether inform
 ## Practical Rule
 Any strategy showing < 0.5% average return per trade is likely not covering real execution costs. Our break-even analysis (Lesson 26) makes this explicit.`,
       chartConfig: { overlays: [], showComposite: false },
+      sandboxType: "chart",
+      staticDataKey: "general",
       tutorialSteps: [
         { instruction: "Each candle close is what a backtest uses as your fill price — but real execution includes spread and slippage.", validate: "observation_acknowledged", hint: "Click 'Got it' to continue." },
         { instruction: "A strategy averaging 0.3% per trade barely covers the 0.2% round-trip fee. Execution costs eat most edges.", validate: "observation_acknowledged", hint: "Click 'Got it' to continue." },
@@ -249,6 +255,8 @@ MACD is essentially a trend-following momentum indicator. Moskowitz, Ooi & Peder
 ## In QuantDash
 The MACD histogram value shows in the Indicators panel. Green = bullish momentum, red = bearish. It contributes 15% to the composite score.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "macd",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 — MACD tracks the spread between a fast EMA (12) and slow EMA (26).", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Add EMA 50 to visualize the slow component. When these diverge, the MACD histogram grows.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
@@ -321,6 +329,8 @@ ATR(14) shows in the Indicators panel as a dollar value. For BTC at $100K, an AT
 ## Academic Connection
 ATR is closely related to Parkinson volatility (also shown in our panel). Parkinson is ~5x more statistically efficient because it uses the full high-low range, not just closing prices. Both tell you about regime — low ATR = compression = breakout imminent.`,
       chartConfig: { overlays: ["ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "bollinger",
       tutorialSteps: [
         { instruction: "Toggle EMA 50 as a trend reference. ATR measures volatility — how far price moves per period.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
         { instruction: "Open composite to see the volatility metrics. ATR shows daily range in dollar terms.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
@@ -351,6 +361,8 @@ VWAP resets each day (the cumulative calculation starts over). It's most useful 
 ## In QuantDash
 Toggle VWAP (purple line) in overlays. Switch to 15m or 1H timeframe for best results. The line acts as a magnet — price tends to revert to it during quiet periods.`,
       chartConfig: { overlays: ["vwap"], interval: "15m" },
+      sandboxType: "chart",
+      staticDataKey: "general",
       tutorialSteps: [
         { instruction: "Toggle VWAP (purple) — the volume-weighted average price shows where the market truly transacted.", validate: "overlay_vwap_on", hint: "Click VWAP." },
         { instruction: "Observe: price above VWAP = buyers in control. Below = sellers. Crosses signal potential trend changes.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
@@ -378,6 +390,8 @@ S/R levels are shown as dotted lines: green for support, red for resistance. The
 ## Limitations
 S/R detection is backward-looking. A level that held 5 times in the past provides no guarantee for the future. Use S/R as context for your strategy, not as the strategy itself. For example: "buy the golden cross, but only if price is near support."`,
       chartConfig: { overlays: [], showSR: true },
+      sandboxType: "chart",
+      staticDataKey: "sr",
       tutorialSteps: [
         { instruction: "Scan the chart for horizontal price levels where price repeatedly bounced or was rejected.", validate: "observation_acknowledged", hint: "Click 'Got it' after identifying a level." },
         { instruction: "A support level tested 3+ times is stronger. But when it finally breaks, expect acceleration — old support becomes new resistance.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
@@ -410,6 +424,8 @@ Testing many variations until one "works" inflates your false positive rate. If 
 ## In QuantDash
 After running a backtest, click "Show Academic Report" to see the runs test and Monte Carlo results. These two tests alone will eliminate 80% of false strategies.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 and EMA 50 — the golden cross strategy we'll test for statistical significance.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Add EMA 50 to complete the crossover system.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
@@ -446,9 +462,11 @@ If you size positions assuming Gaussian tails, you'll be wiped out by events tha
 ## In QuantDash
 The Cornish-Fisher VaR in the Academic Report adjusts for fat tails. Compare it to the Parametric (Gaussian) VaR — the difference is how much risk you're underestimating.`,
       chartConfig: { overlays: [], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
         { instruction: "Open composite to see the current volatility regime indicators.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
-        { instruction: "Scan the chart for any large single-candle moves. These 3-sigma events happen 2-5× more often than Gaussian models predict.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting one." },
+        { instruction: "Find the crash zone — several huge candles in a row. These 3-sigma events happen 2-5× more often than Gaussian models predict.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting them." },
       ],
     },
 
@@ -476,6 +494,8 @@ The future candle projection uses a GARCH-lite model to ensure simulated paths e
 ## In QuantDash
 Watch the Parkinson Vol indicator in the sidebar. When it's trending up, vol is clustering — expect more volatility. When it's trending down, a squeeze may be forming.`,
       chartConfig: { overlays: ["bbUpper", "bbLower"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "bollinger",
       tutorialSteps: [
         { instruction: "Toggle BB Upper to see the volatility envelope.", validate: "overlay_bbUpper_on", hint: "Click BB Upper." },
         { instruction: "Add BB Lower. Where bands narrow = low vol compression. Where they widen = vol clustering in action.", validate: "overlay_bbLower_on", hint: "Click BB Lower." },
@@ -509,9 +529,11 @@ We estimate H via variogram analysis: plot E[|vol(t+lag) - vol(t)|^2] vs lag on 
 ## In QuantDash
 The Parkinson Vol indicator shows realized volatility. Watch how it spikes and collapses rather than trending smoothly. This is rough volatility in action — and our projection engine's GARCH-lite model approximates this behavior.`,
       chartConfig: { overlays: [], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
         { instruction: "Open composite to see the Parkinson volatility reading.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
-        { instruction: "Observe the chart: vol spikes sharply but collapses quickly. This is H ≈ 0.1 roughness — vol doesn't trend, it mean-reverts rapidly.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Observe the crash zone: vol spikes sharply but collapses quickly. This is H ≈ 0.1 roughness — vol doesn't trend, it mean-reverts rapidly.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
@@ -548,6 +570,8 @@ VPIN shows in the Indicators panel. When it reads "TOXIC" (>0.45), consider:
 
 The Academic Report includes a VPIN correlation card showing whether high VPIN periods predicted larger subsequent moves in your backtest data.`,
       chartConfig: { overlays: [], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "general",
       tutorialSteps: [
         { instruction: "Open composite. Find the VPIN (order flow) signal — it measures whether informed traders are active.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
         { instruction: "VPIN > 0.45 = toxic flow. Spreads widen, execution quality degrades. In these conditions, consider staying flat.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
@@ -581,6 +605,8 @@ Different strategies work in different regimes:
 ## In QuantDash
 The Academic Report includes a "HMM Regime Breakdown" card that splits your backtest trades by regime. This reveals whether your strategy performs uniformly or only works in one regime (a red flag for robustness).`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 — in a bull regime, price stays above the fast MA.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Add EMA 50. In a bear regime, price stays below both MAs. The HMM automates this classification.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
@@ -616,6 +642,8 @@ Equal dollar exposure across assets produces horrible risk-adjusted returns. Tar
 ## In QuantDash
 Our TSMOM tool (in quant-lab) runs this strategy across 8 crypto assets. In the dashboard, you can approximate it with \`buy when ema(50) is_above ema(200)\` — a simplified momentum signal that captures the same regime.`,
       chartConfig: { overlays: ["ema50", "ema200"] },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 50 — time-series momentum uses medium-term lookbacks (30-180 days).", validate: "overlay_ema50_on", hint: "Click EMA 50." },
         { instruction: "Add EMA 200. When EMA 50 is above EMA 200, the asset has positive long-term momentum (Moskowitz 2012).", validate: "overlay_ema200_on", hint: "Click EMA 200." },
@@ -661,6 +689,8 @@ Kelly tells you the *maximum* you should bet. Betting MORE than Kelly is mathema
 ## In QuantDash
 Select "Half Kelly" in the sizing config when defining your strategy. The backtest will size each trade based on the trailing 60-bar win rate and R:R ratio. The break-even analysis in the Academic Report shows whether your edge justifies Kelly sizing.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 and EMA 50 to see a simple crossover strategy.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Add EMA 50.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
@@ -696,6 +726,8 @@ VaR tells you the threshold. CVaR tells you: "When it's worse than VaR, *how bad
 ## In QuantDash
 The Academic Report shows all three VaR methods plus CVaR at 95% confidence. Compare Parametric vs Cornish-Fisher — the gap shows how much risk you'd underestimate by assuming Gaussian returns.`,
       chartConfig: { overlays: [], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
         { instruction: "Open composite. The vol signals help estimate daily VaR — higher vol = wider risk bounds.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
         { instruction: "Cornish-Fisher VaR adjusts for fat tails. The gap between it and Parametric VaR shows how much risk Gaussian models underestimate.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
@@ -729,8 +761,10 @@ This asymmetry is why circuit breakers exist.
 ## In QuantDash
 The Drawdown card in the Academic Report shows your top 5 worst drawdowns with depth and duration. The stress test (in the sidebar) shows max drawdown distribution across projected future paths. If median projected max DD > 20%, your leverage is too high.`,
       chartConfig: { overlays: [], showComposite: false },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
-        { instruction: "Find a period on the chart where price dropped significantly from a peak. This is a drawdown in action.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting one." },
+        { instruction: "Find the crash zone — price dropped hard from the peak. This is a drawdown in action.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting it." },
         { instruction: "A 50% drawdown requires a 100% gain to recover. A 90% drawdown requires 900%. This asymmetry is why circuit breakers exist.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
@@ -761,9 +795,11 @@ For BTC (daily vol ≈ 3%, tail factor ≈ 2): safe ≈ 1 / (3 * 0.03 * 2) = 5.6
 ## In QuantDash
 The stress test panel in the sidebar shows ruin probability at 1x, 3x, and 5x. Enable projection first, then check the stress test. If ruin > 1% at your intended leverage, reduce it.`,
       chartConfig: { overlays: [], showComposite: false },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
-        { instruction: "Estimate the largest single-day candle visible on this chart. At 10× leverage, that move hits your equity 10× harder.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
-        { instruction: "Notice clusters of volatile days. At high leverage, 2-3 consecutive bad days cause ruin. Vol clustering makes this common, not rare.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Find the largest single candle on this chart. At 10× leverage, that move hits your equity 10× harder.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Notice the crash cluster — consecutive volatile days. At high leverage, 2-3 bad days cause ruin. Vol clustering makes this common.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
   },
@@ -801,11 +837,14 @@ Click "Show Academic Report" below the results. This is where the real analysis 
 ## What You'll Likely Find
 The golden cross on 1H BTC produces modest results (~0.3-1% per trade) with ~45-55% win rate. It works best in trending markets and gives many false signals in sideways markets. This is *normal* — and why we add filters in the next lesson.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "strategy-lab",
+      staticDataKey: "strategy-upload",
+      sampleDSL: "buy when ema(20) crosses_above ema(50)\nsell when ema(20) crosses_below ema(50)",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 (amber) — this is the fast signal line in the golden cross strategy.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add EMA 50 (blue) — the slow trend. Buy when EMA 20 crosses above, sell when it crosses below.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Find a crossover on the chart. A green arrow would mark entry, red arrow would mark exit.", validate: "observation_acknowledged", hint: "Click 'Got it' after spotting one." },
-        { instruction: "Open composite to see how the crossover signal aligns with the broader market view.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Click 'Load Sample Strategy' to load the classic golden cross — buy when EMA 20 crosses above EMA 50.", validate: "sample_loaded", hint: "Click the Load Sample Strategy button." },
+        { instruction: "Read the parsed entry and exit conditions. The parser extracted the crossover rules from the DSL text.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Click 'Run Backtest' to execute the strategy and see where it would have entered and exited.", validate: "backtest_complete", hint: "Click Run Backtest." },
+        { instruction: "Review: green arrows = buy, red arrows = sell. Check the win rate and total return.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
@@ -843,10 +882,14 @@ Run the backtest with filters, then compare the Academic Report to the unfiltere
 - Better MC percentile rank
 - Maintained trade count (should be 50%+ of original)`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "strategy-lab",
+      staticDataKey: "strategy-upload",
+      sampleDSL: "buy when ema(20) crosses_above ema(50) and rsi(14) < 60\nsell when ema(20) crosses_below ema(50)",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 — the base golden cross signal.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add EMA 50 to see the crossovers that generate raw signals.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Open composite. Filter idea: only trade the golden cross when composite > 0, meaning a majority of signals agree.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Click 'Load Sample Strategy' — this golden cross adds an RSI filter: only buy when RSI < 60 (not overbought).", validate: "sample_loaded", hint: "Click Load Sample Strategy." },
+        { instruction: "Compare the parsed conditions: entry has TWO rules (AND logic). The RSI filter reduces false signals.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Run the backtest. Compare the results to the unfiltered golden cross from the previous lesson.", validate: "backtest_complete", hint: "Click Run Backtest." },
+        { instruction: "Fewer trades but (ideally) higher win rate. The filter tradeoff: less opportunity, fewer bad trades.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
 
@@ -882,11 +925,13 @@ No single indicator is reliable. But when 5-6 out of 7 agree, the probability of
 ## In QuantDash
 The composite score updates in real-time in the sidebar. Each signal shows its current label and weight contribution. Use it as a go/no-go gate for any strategy.`,
       chartConfig: { overlays: ["ema20", "ema50", "bbUpper", "bbLower"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 — the trend component carries 20% weight in the composite score.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add BB Upper — Bollinger position contributes 10% weight to the score.", validate: "overlay_bbUpper_on", hint: "Click BB Upper." },
+        { instruction: "Add BB Upper — Bollinger position contributes 10% weight.", validate: "overlay_bbUpper_on", hint: "Click BB Upper." },
         { instruction: "Add BB Lower to complete the volatility envelope.", validate: "overlay_bbLower_on", hint: "Click BB Lower." },
-        { instruction: "Open composite to see all 7 signals combined. No single indicator is reliable — but when 5-6 out of 7 agree, false signal probability drops dramatically.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Open composite to see all 7 signals combined. When 5-6 out of 7 agree, false signal probability drops dramatically.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
       ],
     },
 
@@ -976,10 +1021,14 @@ Any strategy with max DD > 30% will be psychologically impossible to follow in r
 ## In QuantDash
 The Academic Report presents all these metrics in 8 cards. Read them in the priority order above. If the first two checks fail, don't bother with the rest — redesign the strategy.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "strategy-lab",
+      staticDataKey: "strategy-upload",
+      sampleDSL: "buy when ema(20) crosses_above ema(50)\nsell when rsi(14) > 70",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 and EMA 50 — imagine this crossover strategy produced 40 trades.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add EMA 50.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Open composite. Priority #1: Monte Carlo rank (>80th = real edge). Priority #2: Runs test (p < 0.05 = structured, not random).", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Click 'Load Sample Strategy' — this uses EMA crossover entry with RSI exit (sell when overbought).", validate: "sample_loaded", hint: "Click Load Sample Strategy." },
+        { instruction: "Note the exit rule: RSI > 70 exits before the death cross, locking in profits earlier.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Run the backtest. Focus on: is the win rate above break-even? Are there enough trades (20+)?", validate: "backtest_complete", hint: "Click Run Backtest." },
+        { instruction: "If Sharpe > 3.0 with many trades → likely overfit. Few trades (< 20) → insufficient sample. These are the red flags.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
   },
@@ -1023,6 +1072,8 @@ The projection generates N paths (default 50). At each future time step, we comp
 ## In QuantDash
 Click "Enable Projection" in the sidebar. The fan appears beyond the last candle. Adjust horizon and path count, then click "Regenerate" for a fresh simulation.`,
       chartConfig: { overlays: ["ema20"] },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20. The projection engine samples future candles that respect this trend's vol regime.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Each projected candle preserves real wick-to-body ratios — not random closes. This makes the fan chart realistic.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
@@ -1053,8 +1104,10 @@ If ruin > 1% at a given leverage, it's too high. The math is simple: over 200 pa
 ## In QuantDash
 Enable projection in the sidebar, then scroll down to the "Stress Test" section. It automatically runs the leverage sweep on your projected paths.`,
       chartConfig: { overlays: [] },
+      sandboxType: "chart",
+      staticDataKey: "drawdown",
       tutorialSteps: [
-        { instruction: "Study the chart for the most volatile period visible. The stress test runs your strategy across 200 simulated paths like this — and worse.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
+        { instruction: "Study the crash zone. The stress test runs your strategy across 200 simulated paths like this — and worse.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
         { instruction: "If ruin probability exceeds 1% at your intended leverage, reduce leverage. No strategy survives certain ruin.", validate: "observation_acknowledged", hint: "Click 'Got it'." },
       ],
     },
@@ -1091,10 +1144,12 @@ Minimum 30 trades. Below that, you don't have statistical significance. For a da
 - You consistently want to override signals (strategy doesn't match your market view)
 - Win rate deviates > 15pp from backtest (regime has changed)`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
-        { instruction: "Toggle EMA 20 — start tracking signals in real-time as candles update.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
-        { instruction: "Add EMA 50. Watch for live crossovers as the chart polls new data.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Open composite for the real-time conviction score. Paper trade for 30+ signals before risking capital.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Toggle EMA 20 — start tracking signals as if monitoring in real-time.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
+        { instruction: "Add EMA 50. Watch for crossovers — each one is a signal you'd log during paper trading.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
+        { instruction: "Open composite for the conviction score. Paper trade for 30+ signals before risking capital.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
       ],
     },
 
@@ -1137,10 +1192,12 @@ Binance historical data may have survivorship bias (delisted tokens are excluded
 ## In QuantDash
 Use every tool we've built: backtest for historical edge, academic report for validation, projection + stress test for forward risk, and paper trading for real-time confirmation. Only go live when all checks pass.`,
       chartConfig: { overlays: ["ema20", "ema50"], showComposite: true },
+      sandboxType: "chart",
+      staticDataKey: "sma-ema",
       tutorialSteps: [
         { instruction: "Toggle EMA 20 and EMA 50 — the strategy you'd take from backtest to live.", validate: "overlay_ema20_on", hint: "Click EMA 20." },
         { instruction: "Add EMA 50.", validate: "overlay_ema50_on", hint: "Click EMA 50." },
-        { instruction: "Open composite. The full go-live checklist: MC > 80th, runs test structured, break-even edge > +5pp, works in 2+ regimes, ruin < 1%.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
+        { instruction: "Open composite. The full go-live checklist: MC > 80th, runs test structured, break-even > +5pp, works in 2+ regimes, ruin < 1%.", validate: "composite_expanded", hint: "Click 'Show Composite'." },
       ],
     },
   },

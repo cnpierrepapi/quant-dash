@@ -135,10 +135,97 @@ export const STRATEGY_UPLOAD_DATASET: StaticCandle[] = generateCandles(
   1700000000,
 );
 
+// ═══════════════════════════════════════════════
+// DATASET 5: General — Moderate trending market
+// Good for candle reading, VWAP, VPIN, order book lessons
+// ═══════════════════════════════════════════════
+export const GENERAL_DATASET: StaticCandle[] = generateCandles(
+  333,
+  [
+    { bars: 40, drift: 0.001, vol: 0.008 },      // gentle uptrend
+    { bars: 30, drift: -0.0005, vol: 0.010 },    // choppy pullback
+    { bars: 20, drift: 0.0003, vol: 0.004 },     // tight range (good for candle patterns)
+    { bars: 35, drift: 0.003, vol: 0.007 },      // breakout rally
+    { bars: 25, drift: -0.001, vol: 0.006 },     // orderly decline
+    { bars: 40, drift: 0.002, vol: 0.009 },      // trending with volume
+    { bars: 30, drift: -0.0003, vol: 0.005 },    // consolidation
+    { bars: 30, drift: 0.001, vol: 0.007 },      // drift higher
+  ],
+  46000,
+  1700000000,
+);
+
+// ═══════════════════════════════════════════════
+// DATASET 6: MACD — Clear momentum shifts with histogram crossovers
+// Strong trend → loss of momentum → reversal → new trend
+// ═══════════════════════════════════════════════
+export const MACD_DATASET: StaticCandle[] = generateCandles(
+  512,
+  [
+    { bars: 50, drift: 0.003, vol: 0.006 },      // strong uptrend (MACD positive, histogram growing)
+    { bars: 30, drift: 0.001, vol: 0.005 },      // momentum fading (histogram shrinking)
+    { bars: 15, drift: -0.001, vol: 0.007 },     // MACD crosses below signal
+    { bars: 40, drift: -0.003, vol: 0.008 },     // downtrend (histogram deeply negative)
+    { bars: 20, drift: -0.001, vol: 0.005 },     // momentum loss in decline
+    { bars: 15, drift: 0.002, vol: 0.007 },      // MACD crosses above signal
+    { bars: 50, drift: 0.004, vol: 0.007 },      // new uptrend
+    { bars: 30, drift: 0.001, vol: 0.006 },      // settling
+  ],
+  43000,
+  1700000000,
+);
+
+// ═══════════════════════════════════════════════
+// DATASET 7: Support/Resistance — Clear horizontal bounces
+// Price oscillates around key levels with multiple touches
+// ═══════════════════════════════════════════════
+export const SR_DATASET: StaticCandle[] = generateCandles(
+  888,
+  [
+    { bars: 40, drift: 0.002, vol: 0.006 },      // rise to resistance
+    { bars: 20, drift: -0.001, vol: 0.005 },     // reject, pull back
+    { bars: 25, drift: 0.002, vol: 0.005 },      // test resistance again
+    { bars: 15, drift: -0.002, vol: 0.006 },     // reject again
+    { bars: 30, drift: 0.003, vol: 0.008 },      // breakout above resistance
+    { bars: 20, drift: 0.001, vol: 0.005 },      // old resistance = new support
+    { bars: 25, drift: -0.002, vol: 0.006 },     // test new support
+    { bars: 15, drift: 0.002, vol: 0.005 },      // bounce off support
+    { bars: 30, drift: 0.001, vol: 0.007 },      // range trade
+    { bars: 30, drift: -0.001, vol: 0.006 },     // settle
+  ],
+  44500,
+  1700000000,
+);
+
+// ═══════════════════════════════════════════════
+// DATASET 8: Drawdown — Rally then crash then partial recovery
+// For fat tails, drawdown survival, leverage ruin, VaR lessons
+// ═══════════════════════════════════════════════
+export const DRAWDOWN_DATASET: StaticCandle[] = generateCandles(
+  999,
+  [
+    { bars: 60, drift: 0.003, vol: 0.007 },      // steady rally (builds equity)
+    { bars: 20, drift: 0.005, vol: 0.010 },      // euphoric acceleration
+    { bars: 5,  drift: -0.015, vol: 0.020 },     // CRASH — 3-4 sigma daily moves
+    { bars: 10, drift: -0.008, vol: 0.015 },     // continued selloff (vol clustering)
+    { bars: 15, drift: -0.003, vol: 0.012 },     // bleeding lower
+    { bars: 20, drift: 0.001, vol: 0.010 },      // bottoming, vol still high
+    { bars: 30, drift: 0.002, vol: 0.008 },      // partial recovery
+    { bars: 40, drift: 0.001, vol: 0.006 },      // slow grind back
+    { bars: 50, drift: 0.0005, vol: 0.005 },     // new normal (below old highs)
+  ],
+  47000,
+  1700000000,
+);
+
 // Dataset registry
 export const STATIC_DATASETS: Record<string, StaticCandle[]> = {
   "sma-ema": SMA_EMA_DATASET,
   "bollinger": BOLLINGER_DATASET,
   "rsi": RSI_DATASET,
   "strategy-upload": STRATEGY_UPLOAD_DATASET,
+  "general": GENERAL_DATASET,
+  "macd": MACD_DATASET,
+  "sr": SR_DATASET,
+  "drawdown": DRAWDOWN_DATASET,
 };
