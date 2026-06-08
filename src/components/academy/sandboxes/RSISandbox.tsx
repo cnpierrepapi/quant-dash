@@ -214,6 +214,15 @@ export default function RSISandbox({ content }: { content: LessonContent }) {
     if (idx !== -1) setCompletedSteps((prev) => new Set(prev).add(idx));
   };
 
+  const handleSolveStep = (validate: string) => {
+    if (validate.startsWith("overlay_") && validate.endsWith("_on")) {
+      const key = validate.replace("overlay_", "").replace("_on", "");
+      setOverlays((prev) => new Set(prev).add(key));
+    }
+    if (validate === "rsi_panel_shown") setShowRSI(true);
+    if (validate === "observation_acknowledged") acknowledgeObservation();
+  };
+
   return (
     <div className="mt-6 border border-[#2a2a3a] rounded-lg overflow-hidden">
       <div className="bg-[#111118] px-3 py-2 border-b border-[#2a2a3a] flex items-center justify-between">
@@ -221,7 +230,7 @@ export default function RSISandbox({ content }: { content: LessonContent }) {
         <span className="text-[10px] text-[#8888a0]">Static dataset</span>
       </div>
 
-      <SandboxController steps={steps} completedSteps={completedSteps} />
+      <SandboxController steps={steps} completedSteps={completedSteps} onSolveStep={handleSolveStep} />
 
       {/* Price chart */}
       <div className={showRSI ? "h-40 relative" : "h-64 relative"}>

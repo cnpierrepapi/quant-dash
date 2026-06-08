@@ -128,6 +128,12 @@ export default function StrategyLabSandbox({ content }: { content: LessonContent
     if (idx !== -1) setCompletedSteps((prev) => new Set(prev).add(idx));
   };
 
+  const handleSolveStep = (validate: string) => {
+    if (validate === "sample_loaded") handleLoadSample();
+    if (validate === "backtest_complete") handleRunBacktest();
+    if (validate === "observation_acknowledged") acknowledgeObservation();
+  };
+
   const result = backtest.result;
   const hasStrategy = strategyHook.dslText.length > 0;
   const hasParsed = strategyHook.strategy.entryLong.conditions.length > 0;
@@ -139,7 +145,7 @@ export default function StrategyLabSandbox({ content }: { content: LessonContent
         <span className="text-[10px] text-[#8888a0]">Static dataset — 300 candles</span>
       </div>
 
-      <SandboxController steps={steps} completedSteps={completedSteps} />
+      <SandboxController steps={steps} completedSteps={completedSteps} onSolveStep={handleSolveStep} />
 
       {/* Chart */}
       <div className="h-52 relative">

@@ -6,7 +6,7 @@ import type { ModuleMeta } from "@/data/academy/index";
 export default function ModuleCard({ module }: { module: ModuleMeta }) {
   return (
     <Link
-      href={`/academy/${module.slug}/${module.lessons[0].slug}`}
+      href={`/academy/${module.slug}`}
       className="block bg-[#111118] border border-[#2a2a3a] rounded-lg p-5 hover:border-[#6366f1] transition-colors group"
     >
       <div className="flex items-center gap-3 mb-3">

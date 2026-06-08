@@ -38,7 +38,7 @@ export default async function LessonPage({ params }: { params: Promise<{ module:
         <div className="h-4 w-px bg-[#2a2a3a]" />
         <Link href="/academy" className="text-xs text-[#8888a0] hover:text-[#e8e8ef]">Academy</Link>
         <span className="text-xs text-[#2a2a3a]">/</span>
-        <span className="text-xs text-[#8888a0]">{data.module.title}</span>
+        <Link href={`/academy/${module}`} className="text-xs text-[#8888a0] hover:text-[#e8e8ef]">{data.module.title}</Link>
         <span className="text-xs text-[#2a2a3a]">/</span>
         <span className="text-xs text-[#e8e8ef]">{data.lesson.title}</span>
       </div>

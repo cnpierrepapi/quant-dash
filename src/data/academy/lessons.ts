@@ -935,7 +935,7 @@ Whatever you type in the code editor automatically updates the visual builder, a
       chartConfig: { overlays: ["ema20", "ema50"] },
       sandboxType: "strategy-lab",
       staticDataKey: "strategy-upload",
-      sampleDSL: "buy when ema(20) crosses_above ema(50) and rsi(14) < 50\nsell when ema(20) crosses_below ema(50) or rsi(14) > 70",
+      sampleDSL: "buy when ema(20) crosses_above ema(50)\nsell when ema(20) crosses_below ema(50)",
       tutorialSteps: [
         { instruction: "Click 'Load Sample Strategy' to populate the editor with a golden-cross + RSI filter.", validate: "sample_loaded", hint: "Click the Load Sample Strategy button." },
         { instruction: "Read the parsed conditions below. The parser extracted entry AND exit rules from the DSL text.", validate: "observation_acknowledged", hint: "Click 'Got it' after reading the conditions." },

@@ -233,6 +233,16 @@ export default function ChartSandbox({ content }: { content: LessonContent }) {
     if (idx !== -1) setCompletedSteps((prev) => new Set(prev).add(idx));
   };
 
+  const handleSolveStep = (validate: string) => {
+    if (validate.startsWith("overlay_") && validate.endsWith("_on")) {
+      const key = validate.replace("overlay_", "").replace("_on", "");
+      setOverlays((prev) => new Set(prev).add(key));
+    }
+    if (validate === "composite_expanded") setShowComposite(true);
+    if (validate === "squeeze_highlighted") setSqueezeHighlighted(true);
+    if (validate === "observation_acknowledged") acknowledgeObservation();
+  };
+
   const composite = indicators?.composite;
 
   return (
@@ -246,7 +256,7 @@ export default function ChartSandbox({ content }: { content: LessonContent }) {
         </span>
       </div>
 
-      <SandboxController steps={steps} completedSteps={completedSteps} />
+      <SandboxController steps={steps} completedSteps={completedSteps} onSolveStep={handleSolveStep} />
 
       <div className="h-64 relative">
         <div ref={chartRef} className="absolute inset-0" />

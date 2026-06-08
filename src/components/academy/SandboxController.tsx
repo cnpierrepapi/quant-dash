@@ -11,15 +11,25 @@ export type SandboxStep = {
 export default function SandboxController({
   steps,
   completedSteps,
+  onSolveStep,
 }: {
   steps: SandboxStep[];
   completedSteps: Set<number>;
+  onSolveStep?: (validate: string) => void;
 }) {
   const [showHints, setShowHints] = useState<Set<number>>(new Set());
 
   if (steps.length === 0) return null;
 
   const currentStep = steps.findIndex((_, i) => !completedSteps.has(i));
+
+  const handleHintClick = (i: number) => {
+    setShowHints((prev) => new Set(prev).add(i));
+    // Auto-solve: perform the action for the user
+    if (onSolveStep) {
+      onSolveStep(steps[i].validate);
+    }
+  };
 
   return (
     <div className="bg-[#111118] border border-[#2a2a3a] rounded-lg p-3 mb-4">
@@ -55,20 +65,20 @@ export default function SandboxController({
                 active ? "bg-[#6366f1] text-white animate-pulse" :
                 "bg-[#2a2a3a] text-[#8888a0]"
               }`}>
-                {done ? "✓" : i + 1}
+                {done ? "\u2713" : i + 1}
               </span>
               <div className="flex-1">
                 <p className={active ? "text-[#e8e8ef]" : "text-[#8888a0]"}>{step.instruction}</p>
                 {active && step.hint && !showHints.has(i) && (
                   <button
-                    onClick={() => setShowHints((prev) => new Set(prev).add(i))}
+                    onClick={() => handleHintClick(i)}
                     className="text-[10px] text-[#6366f1] mt-1 hover:text-[#818cf8]"
                   >
-                    Need a hint?
+                    Do it for me
                   </button>
                 )}
                 {showHints.has(i) && step.hint && (
-                  <p className="text-[10px] text-[#eab308] mt-1">{step.hint}</p>
+                  <p className="text-[10px] text-[#22c55e] mt-1">{step.hint}</p>
                 )}
               </div>
             </div>
