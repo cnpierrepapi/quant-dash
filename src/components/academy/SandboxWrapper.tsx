@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import {
   createChart,
   type IChartApi,
@@ -43,18 +43,17 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
   const chartRef = useRef<HTMLDivElement>(null);
   const chartApi = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlaySeriesRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+  const fittedRef = useRef(false);
 
   const sym = content.chartConfig.symbol || "BTCUSDT";
   const intv = content.chartConfig.interval || "1h";
   const { candles } = useCandles(sym, intv);
   const indicators = useIndicators(candles);
 
-  const [overlays, setOverlays] = useState<Set<string>>(
-    new Set(content.chartConfig.overlays || [])
-  );
-  // Don't auto-show composite on mount — wait for user interaction to avoid
-  // race condition where indicators haven't loaded yet (causes crash)
+  // Start with NO overlays enabled — let the tutorial guide the user to toggle them
+  const [overlays, setOverlays] = useState<Set<string>>(new Set());
   const [showComposite, setShowComposite] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
@@ -62,12 +61,10 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
   const enabledControls = useMemo(() => {
     const cfg = content.chartConfig;
     const controls = new Set<string>();
-    // Always show overlays mentioned in config + a few extras for exploration
     const suggested = cfg.overlays || [];
     for (const o of ALL_OVERLAYS) {
       if (suggested.includes(o.key)) controls.add(o.key);
     }
-    // Add adjacent overlays for exploration
     if (suggested.some((s) => s.includes("ema"))) {
       controls.add("ema20"); controls.add("ema50"); controls.add("ema200");
     }
@@ -78,7 +75,6 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
       controls.add("sma20"); controls.add("sma50");
     }
     if (suggested.includes("vwap")) controls.add("vwap");
-    // If nothing specified, show common ones
     if (controls.size === 0) {
       controls.add("ema20"); controls.add("ema50"); controls.add("bbUpper"); controls.add("bbLower");
     }
@@ -141,10 +137,11 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
     if (newCompleted.size !== completedSteps.size) setCompletedSteps(newCompleted);
   }, [overlays, showComposite, steps, completedSteps]);
 
-  // Build chart
-  useEffect(() => {
-    if (!chartRef.current || candles.length === 0) return;
-    if (chartApi.current) { chartApi.current.remove(); chartApi.current = null; }
+  // Create chart ONCE on mount — useLayoutEffect so cleanup runs BEFORE React
+  // removes the DOM container (lightweight-charts throws "Object is disposed"
+  // if its container is gone when chart.remove() is called)
+  useLayoutEffect(() => {
+    if (!chartRef.current) return;
 
     const chart = createChart(chartRef.current, {
       layout: { background: { type: ColorType.Solid, color: "#0a0a0f" }, textColor: "#8888a0", fontSize: 10 },
@@ -160,52 +157,76 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
       borderUpColor: "#22c55e", borderDownColor: "#ef4444",
       wickUpColor: "#22c55e", wickDownColor: "#ef4444",
     });
-    cs.setData(candles.map((c) => ({
-      time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close,
-    })) as CandlestickData[]);
     candleSeriesRef.current = cs;
 
     const vs = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "vol" });
     chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
-    vs.setData(candles.map((c) => ({
-      time: c.time as Time, value: c.volume, color: c.close >= c.open ? "#22c55e30" : "#ef444430",
-    })) as HistogramData[]);
-
-    chart.timeScale().fitContent();
+    volumeSeriesRef.current = vs;
 
     const ro = new ResizeObserver(() => {
       if (chartRef.current && chartApi.current) {
-        chartApi.current.applyOptions({ width: chartRef.current.clientWidth, height: chartRef.current.clientHeight });
+        try {
+          chartApi.current.applyOptions({ width: chartRef.current.clientWidth, height: chartRef.current.clientHeight });
+        } catch { /* chart disposed */ }
       }
     });
     ro.observe(chartRef.current);
-    return () => { ro.disconnect(); chart.remove(); };
+
+    return () => {
+      ro.disconnect();
+      try { chart.remove(); } catch { /* already disposed */ }
+      chartApi.current = null;
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      overlaySeriesRef.current.clear();
+      fittedRef.current = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update candle + volume data in-place (no chart rebuild)
+  useEffect(() => {
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || candles.length === 0) return;
+    try {
+      candleSeriesRef.current.setData(candles.map((c) => ({
+        time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close,
+      })) as CandlestickData[]);
+      volumeSeriesRef.current.setData(candles.map((c) => ({
+        time: c.time as Time, value: c.volume, color: c.close >= c.open ? "#22c55e30" : "#ef444430",
+      })) as HistogramData[]);
+      if (!fittedRef.current && chartApi.current) {
+        chartApi.current.timeScale().fitContent();
+        fittedRef.current = true;
+      }
+    } catch { /* chart disposed during teardown */ }
   }, [candles]);
 
-  // Update overlays
+  // Update overlays (only when indicators or overlay selection changes)
   useEffect(() => {
     if (!chartApi.current || !indicators) return;
     const chart = chartApi.current;
 
-    overlaySeriesRef.current.forEach((s) => { try { chart.removeSeries(s); } catch {} });
-    overlaySeriesRef.current.clear();
+    try {
+      overlaySeriesRef.current.forEach((s) => { try { chart.removeSeries(s); } catch { /* ok */ } });
+      overlaySeriesRef.current.clear();
 
-    for (const key of overlays) {
-      const cfg = ALL_OVERLAYS.find((o) => o.key === key);
-      if (!cfg) continue;
-      const data = getOverlayData(key, indicators);
-      const series = chart.addLineSeries({
-        color: cfg.color, lineWidth: 1,
-        lineStyle: key.startsWith("sma") ? LineStyle.Dashed : LineStyle.Solid,
-        priceLineVisible: false, lastValueVisible: false,
-      });
-      const ld: LineData[] = [];
-      for (let i = 0; i < candles.length; i++) {
-        if (data[i] !== null) ld.push({ time: candles[i].time as Time, value: data[i]! });
+      for (const key of overlays) {
+        const cfg = ALL_OVERLAYS.find((o) => o.key === key);
+        if (!cfg) continue;
+        const data = getOverlayData(key, indicators);
+        const series = chart.addLineSeries({
+          color: cfg.color, lineWidth: 1,
+          lineStyle: key.startsWith("sma") ? LineStyle.Dashed : LineStyle.Solid,
+          priceLineVisible: false, lastValueVisible: false,
+        });
+        const ld: LineData[] = [];
+        for (let i = 0; i < candles.length; i++) {
+          if (data[i] !== null) ld.push({ time: candles[i].time as Time, value: data[i]! });
+        }
+        series.setData(ld);
+        overlaySeriesRef.current.set(key, series);
       }
-      series.setData(ld);
-      overlaySeriesRef.current.set(key, series);
-    }
+    } catch { /* chart disposed during teardown */ }
   }, [candles, indicators, overlays]);
 
   const toggleOverlay = (key: string) => {

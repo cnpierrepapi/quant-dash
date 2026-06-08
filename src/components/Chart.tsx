@@ -68,7 +68,7 @@ export default function Chart() {
   const buildChart = useCallback(() => {
     if (!chartRef.current || candles.length === 0) return;
     if (chartApi.current) {
-      chartApi.current.remove();
+      try { chartApi.current.remove(); } catch { /* already disposed */ }
       chartApi.current = null;
       overlaySeries.current.clear();
       srLines.current = [];
@@ -231,7 +231,7 @@ export default function Chart() {
     }
   }, [candles, indicators, overlays, showSR, projection.enabled, projection.result]);
 
-  useEffect(() => { buildChart(); }, [buildChart]);
+  useEffect(() => buildChart(), [buildChart]);
   useEffect(() => { updateOverlays(); }, [updateOverlays]);
 
   // Update data in-place on polling

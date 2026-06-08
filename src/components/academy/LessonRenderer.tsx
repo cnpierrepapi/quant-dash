@@ -1,8 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { LessonContent } from "@/data/academy/lessons";
 import LessonNav from "./LessonNav";
-import SandboxWrapper from "./SandboxWrapper";
+
+const SandboxWrapper = dynamic(() => import("./SandboxWrapper"), { ssr: false });
 
 function renderMarkdown(text: string): React.ReactNode[] {
   const lines = text.split("\n");
