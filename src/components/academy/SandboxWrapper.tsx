@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   createChart,
   type IChartApi,
@@ -14,7 +14,7 @@ import {
 } from "lightweight-charts";
 import { useCandles } from "@/hooks/useCandles";
 import { useIndicators } from "@/hooks/useIndicators";
-import SandboxController, { type SandboxStep } from "./SandboxController";
+import SandboxController from "./SandboxController";
 import type { LessonContent } from "@/data/academy/lessons";
 
 const ALL_OVERLAYS = [
@@ -57,70 +57,39 @@ export default function SandboxWrapper({ content }: { content: LessonContent }) 
   const [showComposite, setShowComposite] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  // Determine which overlay buttons to show based on lesson config
-  const enabledControls = useMemo(() => {
-    const cfg = content.chartConfig;
+  // Tutorial steps authored per-lesson in lesson data
+  const steps = content.tutorialSteps || [];
+
+  // Derive which overlay buttons to show from the steps + chartConfig
+  const enabledControls = (() => {
     const controls = new Set<string>();
-    const suggested = cfg.overlays || [];
-    for (const o of ALL_OVERLAYS) {
-      if (suggested.includes(o.key)) controls.add(o.key);
+    // Add overlays referenced in tutorial steps
+    for (const step of steps) {
+      const v = step.validate;
+      if (v.startsWith("overlay_") && v.endsWith("_on")) {
+        const key = v.replace("overlay_", "").replace("_on", "");
+        controls.add(key);
+      }
     }
-    if (suggested.some((s) => s.includes("ema"))) {
+    // Add overlays from chartConfig
+    for (const o of content.chartConfig.overlays || []) controls.add(o);
+    // Expand families for exploration
+    if ([...controls].some((k) => k.includes("ema"))) {
       controls.add("ema20"); controls.add("ema50"); controls.add("ema200");
     }
-    if (suggested.some((s) => s.includes("bb"))) {
+    if ([...controls].some((k) => k.includes("bb"))) {
       controls.add("bbUpper"); controls.add("bbLower");
     }
-    if (suggested.some((s) => s.includes("sma"))) {
+    if ([...controls].some((k) => k.includes("sma"))) {
       controls.add("sma20"); controls.add("sma50");
     }
-    if (suggested.includes("vwap")) controls.add("vwap");
+    if (controls.has("vwap")) controls.add("vwap");
+    // Default if nothing specified
     if (controls.size === 0) {
       controls.add("ema20"); controls.add("ema50"); controls.add("bbUpper"); controls.add("bbLower");
     }
     return controls;
-  }, [content.chartConfig]);
-
-  // Sandbox steps based on lesson config
-  const steps = useMemo<SandboxStep[]>(() => {
-    const s: SandboxStep[] = [];
-    const cfg = content.chartConfig;
-    const suggested = cfg.overlays || [];
-
-    const friendlyName = (key: string) =>
-      ALL_OVERLAYS.find((o) => o.key === key)?.label || key;
-
-    if (suggested.length > 0) {
-      s.push({
-        instruction: `Toggle ${friendlyName(suggested[0])} overlay on the chart.`,
-        validate: `overlay_${suggested[0]}_on`,
-        hint: `Click the "${friendlyName(suggested[0])}" button below the chart.`,
-      });
-    }
-    if (suggested.length > 1) {
-      s.push({
-        instruction: `Now also enable ${friendlyName(suggested[1])} to compare.`,
-        validate: `overlay_${suggested[1]}_on`,
-        hint: `Click the second overlay button.`,
-      });
-    }
-    if (suggested.length >= 2 && suggested.some((s) => s.includes("ema"))) {
-      s.push({
-        instruction: "Look at where the two lines cross. This crossover is a potential entry/exit signal.",
-        validate: "observation_acknowledged",
-        hint: "Just click 'Got it' below to confirm you've observed the crossover points.",
-      });
-    }
-    if (cfg.showComposite) {
-      s.push({
-        instruction: "Expand the composite score panel to see how multiple indicators combine into one signal.",
-        validate: "composite_expanded",
-        hint: "Click 'Show Composite' below.",
-      });
-    }
-
-    return s;
-  }, [content.chartConfig]);
+  })();
 
   // Validate steps against current state
   useEffect(() => {
