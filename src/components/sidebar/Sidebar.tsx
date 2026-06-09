@@ -26,6 +26,7 @@ export default function Sidebar({
   positionPct, onPositionPctChange, leverage, onLeverageChange,
   stopLossPct, onStopLossPctChange, takeProfitPct, onTakeProfitPctChange,
   livePositions, executionLog, strategyName,
+  apiPanelDocked, livePanelDocked,
 }: {
   indicators: IndicatorData | null;
   overlays: Set<string>;
@@ -63,28 +64,34 @@ export default function Sidebar({
   livePositions: LivePosition[];
   executionLog: ExecutionLogEntry[];
   strategyName: string;
+  apiPanelDocked?: boolean;
+  livePanelDocked?: boolean;
 }) {
   return (
     <div className="w-72 border-l border-[#2a2a3a] bg-[#111118] overflow-y-auto flex-shrink-0">
-      <Collapsible title="Binance API" defaultOpen={false}>
-        <APIKeyEditor
-          keys={apiKeys} loading={apiLoading} error={apiError}
-          onTest={onTestConnection} onDisconnect={onDisconnect}
-        />
-      </Collapsible>
+      {apiPanelDocked && (
+        <Collapsible title="Binance API" defaultOpen>
+          <APIKeyEditor
+            keys={apiKeys} loading={apiLoading} error={apiError}
+            onTest={onTestConnection} onDisconnect={onDisconnect}
+          />
+        </Collapsible>
+      )}
 
-      <Collapsible title="Go Live" defaultOpen={false}>
-        <LivePanel
-          active={liveActive} paperMode={paperMode} onPaperModeChange={onPaperModeChange}
-          onStart={onLiveStart} onStop={onLiveStop}
-          positionPct={positionPct} onPositionPctChange={onPositionPctChange}
-          leverage={leverage} onLeverageChange={onLeverageChange}
-          stopLossPct={stopLossPct} onStopLossPctChange={onStopLossPctChange}
-          takeProfitPct={takeProfitPct} onTakeProfitPctChange={onTakeProfitPctChange}
-          positions={livePositions} log={executionLog}
-          connected={apiKeys.connected} strategyName={strategyName}
-        />
-      </Collapsible>
+      {livePanelDocked && (
+        <Collapsible title="Go Live" defaultOpen>
+          <LivePanel
+            active={liveActive} paperMode={paperMode} onPaperModeChange={onPaperModeChange}
+            onStart={onLiveStart} onStop={onLiveStop}
+            positionPct={positionPct} onPositionPctChange={onPositionPctChange}
+            leverage={leverage} onLeverageChange={onLeverageChange}
+            stopLossPct={stopLossPct} onStopLossPctChange={onStopLossPctChange}
+            takeProfitPct={takeProfitPct} onTakeProfitPctChange={onTakeProfitPctChange}
+            positions={livePositions} log={executionLog}
+            connected={apiKeys.connected} strategyName={strategyName}
+          />
+        </Collapsible>
+      )}
 
       <Collapsible title="Overlays">
         <OverlayPanel overlays={overlays} onToggle={onToggleOverlay} showSR={showSR} onToggleSR={onToggleSR} />

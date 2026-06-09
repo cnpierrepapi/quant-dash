@@ -26,6 +26,9 @@ import Sidebar from "./sidebar/Sidebar";
 import StrategyPanel from "./strategy/StrategyPanel";
 import BacktestPanel from "./backtest/BacktestPanel";
 import PerformanceReport from "./report/PerformanceReport";
+import FloatingPanel from "./live/FloatingPanel";
+import APIKeyEditor from "./live/APIKeyEditor";
+import LivePanel from "./live/LivePanel";
 
 // ── Overlay config ──
 const OVERLAY_COLORS: Record<string, { color: string; dashed?: boolean }> = {
@@ -57,6 +60,10 @@ export default function Chart() {
   const [overlays, setOverlays] = useState<Set<string>>(new Set(["ema20", "ema50"]));
   const [showSR, setShowSR] = useState(true);
   const [showReport, setShowReport] = useState(false);
+
+  // Floating panel state: "float" = on chart, "dock" = in sidebar, "hidden" = closed
+  const [apiPanelMode, setApiPanelMode] = useState<"float" | "dock" | "hidden">("hidden");
+  const [livePanelMode, setLivePanelMode] = useState<"float" | "dock" | "hidden">("hidden");
 
   // Hooks
   const { candles, loading, lastUpdate, currentPrice, priceChange } = useCandles(symbol, interval);
@@ -287,12 +294,47 @@ export default function Chart() {
         currentPrice={currentPrice} priceChange={priceChange}
         loading={loading} lastUpdate={lastUpdate}
         candleCount={candles.length}
+        onToggleAPI={() => setApiPanelMode((m) => m === "float" ? "hidden" : "float")}
+        onToggleLive={() => setLivePanelMode((m) => m === "float" ? "hidden" : "float")}
+        apiConnected={apiKeyHook.keys.connected}
+        liveActive={live.active}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="min-h-[420px] flex-shrink-0 relative">
             <div ref={chartRef} className="absolute inset-0" />
+
+            {/* Floating panels on chart */}
+            <FloatingPanel
+              title="Binance API"
+              visible={apiPanelMode === "float"}
+              defaultPosition={{ x: 16, y: 16 }}
+              onDock={() => setApiPanelMode("dock")}
+            >
+              <APIKeyEditor
+                keys={apiKeyHook.keys} loading={apiKeyHook.loading} error={apiKeyHook.error}
+                onTest={apiKeyHook.testConnection} onDisconnect={apiKeyHook.disconnect}
+              />
+            </FloatingPanel>
+
+            <FloatingPanel
+              title="Go Live"
+              visible={livePanelMode === "float"}
+              defaultPosition={{ x: 16, y: apiPanelMode === "float" ? 260 : 16 }}
+              onDock={() => setLivePanelMode("dock")}
+            >
+              <LivePanel
+                active={live.active} paperMode={live.paperMode} onPaperModeChange={live.setPaperMode}
+                onStart={live.start} onStop={live.stop}
+                positionPct={live.positionPct} onPositionPctChange={live.setPositionPct}
+                leverage={live.leverage} onLeverageChange={live.setLeverage}
+                stopLossPct={live.stopLossPct} onStopLossPctChange={live.setStopLossPct}
+                takeProfitPct={live.takeProfitPct} onTakeProfitPctChange={live.setTakeProfitPct}
+                positions={live.positions} log={live.log}
+                connected={apiKeyHook.keys.connected} strategyName={strategyHook.strategy.name}
+              />
+            </FloatingPanel>
           </div>
 
           {/* Strategy + Backtest panels below chart */}
@@ -365,6 +407,8 @@ export default function Chart() {
           livePositions={live.positions}
           executionLog={live.log}
           strategyName={strategyHook.strategy.name}
+          apiPanelDocked={apiPanelMode === "dock"}
+          livePanelDocked={livePanelMode === "dock"}
         />
       </div>
     </div>

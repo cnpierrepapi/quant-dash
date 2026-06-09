@@ -17,6 +17,7 @@ const INTERVALS = [
 export default function ChartToolbar({
   symbol, onSymbolChange, interval, onIntervalChange,
   currentPrice, priceChange, loading, lastUpdate, candleCount,
+  onToggleAPI, onToggleLive, apiConnected, liveActive,
 }: {
   symbol: string;
   onSymbolChange: (s: string) => void;
@@ -27,6 +28,10 @@ export default function ChartToolbar({
   loading: boolean;
   lastUpdate: Date | null;
   candleCount?: number;
+  onToggleAPI?: () => void;
+  onToggleLive?: () => void;
+  apiConnected?: boolean;
+  liveActive?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b border-[#2a2a3a] bg-[#111118]">
@@ -72,7 +77,35 @@ export default function ChartToolbar({
         </div>
       )}
 
-      <div className="ml-auto flex items-center gap-3 text-xs text-[#8888a0]">
+      <div className="ml-auto flex items-center gap-2 text-xs text-[#8888a0]">
+        {/* Trading buttons */}
+        {onToggleAPI && (
+          <button
+            onClick={onToggleAPI}
+            className={`px-3 py-1 rounded border transition-colors font-medium ${
+              apiConnected
+                ? "bg-[#22c55e20] text-[#22c55e] border-[#22c55e40]"
+                : "bg-[#1a1a24] text-[#8888a0] border-[#2a2a3a] hover:text-[#e8e8ef]"
+            }`}
+          >
+            {apiConnected ? "API \u2713" : "Connect API"}
+          </button>
+        )}
+        {onToggleLive && (
+          <button
+            onClick={onToggleLive}
+            className={`px-3 py-1 rounded border transition-colors font-medium ${
+              liveActive
+                ? "bg-[#22c55e] text-black border-[#22c55e] animate-pulse"
+                : "bg-[#1a1a24] text-[#eab308] border-[#eab30840] hover:bg-[#eab30820]"
+            }`}
+          >
+            {liveActive ? "LIVE" : "Go Live"}
+          </button>
+        )}
+
+        <div className="h-4 w-px bg-[#2a2a3a]" />
+
         <Link
           href="/academy"
           className="px-3 py-1 rounded bg-[#1a1a24] text-[#6366f1] border border-[#2a2a3a] hover:bg-[#6366f1] hover:text-white transition-colors font-medium"
