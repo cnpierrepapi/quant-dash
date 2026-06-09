@@ -327,12 +327,21 @@ export function strategyToDSL(strategy: Strategy): string {
 
 // ─── Preset Strategies ───
 export const PRESETS: Record<string, Strategy> = {
+  // Trend following
   "Golden Cross": parseDSL("buy when ema(20) crosses_above ema(50)\nsell when ema(20) crosses_below ema(50)"),
+  "Triple EMA": parseDSL("buy when ema(20) crosses_above ema(50) and ema(50) > ema(200)\nsell when ema(20) crosses_below ema(50)"),
+  "SMA Trend": parseDSL("buy when sma(20) crosses_above sma(50)\nsell when sma(20) crosses_below sma(50)"),
+  // Momentum
   "RSI Oversold Bounce": parseDSL("buy when rsi(14) crosses_above 30\nsell when rsi(14) crosses_above 70"),
-  "BB Mean Reversion": parseDSL("buy when price < bb_lower\nsell when price > bb_upper"),
+  "RSI + EMA Filter": parseDSL("buy when rsi(14) crosses_above 30 and ema(20) > ema(50)\nsell when rsi(14) crosses_above 70"),
   "MACD Cross": parseDSL("buy when macd_histogram crosses_above 0\nsell when macd_histogram crosses_below 0"),
   "MACD + RSI Filter": parseDSL("buy when macd_histogram crosses_above 0 and rsi(14) > 40\nsell when macd_histogram crosses_below 0"),
-  "Triple EMA": parseDSL("buy when ema(20) crosses_above ema(50) and ema(50) > ema(200)\nsell when ema(20) crosses_below ema(50)"),
+  // Mean reversion
+  "BB Mean Reversion": parseDSL("buy when price < bb_lower\nsell when price > bb_upper"),
+  "BB + RSI Oversold": parseDSL("buy when price < bb_lower and rsi(14) < 30\nsell when price > bb_mid"),
+  // Volume / Flow
+  "VWAP Bounce": parseDSL("buy when price crosses_above vwap\nsell when price crosses_below vwap"),
+  "VPIN Toxicity Exit": parseDSL("buy when rsi(14) crosses_above 30\nsell when vpin > 0.45"),
 };
 
 // Set names

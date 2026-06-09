@@ -42,8 +42,8 @@ export default function FloatingPanel({
   return (
     <div
       ref={panelRef}
-      className="absolute z-50 bg-[#111118] border border-[#2a2a3a] rounded-lg shadow-2xl shadow-black/50"
-      style={{ left: pos.x, top: pos.y, width: collapsed ? 200 : 280 }}
+      className="absolute z-50 bg-[#111118] border border-[#2a2a3a] rounded-lg shadow-2xl shadow-black/50 max-w-[calc(100vw-32px)]"
+      style={{ left: Math.min(pos.x, typeof window !== "undefined" ? window.innerWidth - 300 : pos.x), top: pos.y, width: collapsed ? 200 : 280 }}
     >
       {/* Title bar — draggable */}
       <div
@@ -64,7 +64,7 @@ export default function FloatingPanel({
             className="text-[10px] text-[#8888a0] hover:text-[#6366f1] px-1"
             title="Move to sidebar"
           >
-            \u21E5
+            {"\u21E5"}
           </button>
         </div>
       </div>
