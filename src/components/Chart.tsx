@@ -19,6 +19,8 @@ import { useProjection } from "@/hooks/useProjection";
 import { useStrategy } from "@/hooks/useStrategy";
 import { useBacktest } from "@/hooks/useBacktest";
 import { usePerformance } from "@/hooks/usePerformance";
+import { useAPIKeys } from "@/hooks/useAPIKeys";
+import { useLiveStrategy } from "@/hooks/useLiveStrategy";
 import ChartToolbar from "./chart/ChartToolbar";
 import Sidebar from "./sidebar/Sidebar";
 import StrategyPanel from "./strategy/StrategyPanel";
@@ -63,6 +65,15 @@ export default function Chart() {
   const strategyHook = useStrategy();
   const backtest = useBacktest();
   const metrics = usePerformance(backtest.result, candles);
+  const apiKeyHook = useAPIKeys();
+  const live = useLiveStrategy();
+
+  // Live strategy evaluation on each candle update
+  useEffect(() => {
+    if (live.active && indicators && strategyHook.strategy.entryLong.conditions.length > 0) {
+      live.evaluate(strategyHook.strategy, candles, indicators, symbol, apiKeyHook.keys.apiKey, apiKeyHook.keys.apiSecret);
+    }
+  }, [candles, live.active, indicators, strategyHook.strategy, symbol, apiKeyHook.keys.apiKey, apiKeyHook.keys.apiSecret]);
 
   // ── Build chart ──
   const buildChart = useCallback(() => {
@@ -332,6 +343,28 @@ export default function Chart() {
           projectionComputing={projection.computing}
           onProjectionRegenerate={projection.regenerate}
           projectionResult={projection.result}
+          // Execution
+          apiKeys={apiKeyHook.keys}
+          apiLoading={apiKeyHook.loading}
+          apiError={apiKeyHook.error}
+          onTestConnection={apiKeyHook.testConnection}
+          onDisconnect={apiKeyHook.disconnect}
+          liveActive={live.active}
+          paperMode={live.paperMode}
+          onPaperModeChange={live.setPaperMode}
+          onLiveStart={live.start}
+          onLiveStop={live.stop}
+          positionPct={live.positionPct}
+          onPositionPctChange={live.setPositionPct}
+          leverage={live.leverage}
+          onLeverageChange={live.setLeverage}
+          stopLossPct={live.stopLossPct}
+          onStopLossPctChange={live.setStopLossPct}
+          takeProfitPct={live.takeProfitPct}
+          onTakeProfitPctChange={live.setTakeProfitPct}
+          livePositions={live.positions}
+          executionLog={live.log}
+          strategyName={strategyHook.strategy.name}
         />
       </div>
     </div>
