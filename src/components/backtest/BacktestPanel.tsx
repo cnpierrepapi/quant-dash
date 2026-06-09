@@ -123,7 +123,7 @@ export default function BacktestPanel({
           <span className="text-xs font-bold text-[#e8e8ef]">Strategy Tester</span>
           <Tabs tabs={TABS} active={tab} onChange={setTab} />
         </div>
-        <button onClick={onClear} className="text-xs text-[#8888a0] hover:text-[#ef4444]">x</button>
+        <button onClick={onClear} data-testid="clear-backtest" className="text-xs text-[#8888a0] hover:text-[#ef4444]" title="Clear results">x</button>
       </div>
 
       {/* Overview tab */}

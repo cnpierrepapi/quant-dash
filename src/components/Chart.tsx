@@ -248,12 +248,24 @@ export default function Chart() {
     }
   }, [candles]);
 
+  // Clear trade markers when backtest result is cleared
+  useEffect(() => {
+    if (!backtest.result && candleSeries.current) {
+      try { candleSeries.current.setMarkers([]); } catch { /* ok */ }
+    }
+  }, [backtest.result]);
+
   const toggleOverlay = (key: string) => {
     setOverlays((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   };
 
   const handleRunBacktest = () => {
     if (indicators) backtest.run(strategyHook.strategy, candles, indicators);
+  };
+
+  const handleClearBacktest = () => {
+    backtest.clear();
+    setShowReport(false);
   };
 
   return (
@@ -288,7 +300,7 @@ export default function Chart() {
           />
 
           {backtest.result && (
-            <BacktestPanel result={backtest.result} metrics={metrics} onClear={backtest.clear} />
+            <BacktestPanel result={backtest.result} metrics={metrics} onClear={handleClearBacktest} />
           )}
 
           {backtest.result && metrics && (
