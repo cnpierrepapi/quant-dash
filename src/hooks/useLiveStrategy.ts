@@ -58,7 +58,7 @@ export function useLiveStrategy() {
     if (lastBar <= lastSignalBar.current) return;
 
     // Run the backtest engine on just the last few bars to check conditions
-    const result = runBacktest(strategy, candles, indicators);
+    const result = runBacktest(strategy, candles, indicators, symbol, "1h");
     const trades = result.trades;
 
     if (trades.length === 0) return;

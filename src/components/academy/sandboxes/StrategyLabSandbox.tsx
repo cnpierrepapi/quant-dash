@@ -120,7 +120,7 @@ export default function StrategyLabSandbox({ content }: { content: LessonContent
   };
 
   const handleRunBacktest = () => {
-    if (indicators) backtest.run(strategyHook.strategy, candles, indicators);
+    if (indicators) backtest.run(strategyHook.strategy, candles, indicators, "BTCUSDT", "1h");
   };
 
   const acknowledgeObservation = () => {

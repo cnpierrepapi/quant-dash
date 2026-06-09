@@ -67,11 +67,52 @@ function evalGroup(group: ConditionGroup, candles: Candle[], indicators: Indicat
   return group.conditions.some((c) => evalCondition(c, candles, indicators, idx));
 }
 
+// ─── Compute minimum warmup bars from strategy indicators ───
+// The warmup must be at least as large as the longest indicator period used
+const INDICATOR_WARMUP: Record<string, number> = {
+  ema: 0,   // param IS the warmup (ema20 = 20 bars)
+  sma: 0,
+  rsi: 14,
+  atr: 14,
+  vwap: 1,
+  vpin: 50,
+  parkinson_vol: 30,
+  macd_histogram: 26, // slow EMA period
+  bb_upper: 20,
+  bb_lower: 20,
+  bb_mid: 20,
+};
+
+function getWarmupFromOperand(op: Operand): number {
+  if (op.type !== "indicator") return 0;
+  const { name, params } = op.ref;
+  const base = INDICATOR_WARMUP[name] ?? 14;
+  // For EMA/SMA, the period IS the warmup
+  if ((name === "ema" || name === "sma") && params[0]) return params[0];
+  return base;
+}
+
+function computeWarmup(strategy: Strategy): number {
+  let maxWarmup = 0;
+  const allConditions = [
+    ...strategy.entryLong.conditions,
+    ...strategy.exitLong.conditions,
+  ];
+  for (const cond of allConditions) {
+    maxWarmup = Math.max(maxWarmup, getWarmupFromOperand(cond.left));
+    maxWarmup = Math.max(maxWarmup, getWarmupFromOperand(cond.right));
+  }
+  // Add 1 bar buffer for crosses_above/below which look back 1 bar
+  return Math.max(maxWarmup + 1, 2);
+}
+
 // ─── Run full backtest ───
 export function runBacktest(
   strategy: Strategy,
   candles: Candle[],
   indicators: IndicatorData,
+  symbol: string,
+  interval: string,
   initialCapital = 10000
 ): BacktestResult {
   const trades: Trade[] = [];
@@ -81,24 +122,24 @@ export function runBacktest(
   let entryBar = 0;
   let entryPrice = 0;
 
-  // Start after enough bars for indicators to warm up
-  const startBar = 50;
+  // Dynamic warmup based on indicators used by this strategy
+  const startBar = computeWarmup(strategy);
+
+  // Fee: 0.1% per side = 0.2% round trip (Binance spot/futures taker)
+  const feePerTrade = 0.2;
 
   for (let i = startBar; i < candles.length; i++) {
     if (!inPosition) {
-      // Check entry
       if (evalGroup(strategy.entryLong, candles, indicators, i)) {
         inPosition = true;
         entryBar = i;
         entryPrice = candles[i].close;
       }
     } else {
-      // Check exit
       if (evalGroup(strategy.exitLong, candles, indicators, i)) {
         const exitPrice = candles[i].close;
         const returnPct = (exitPrice - entryPrice) / entryPrice * 100;
-        const fee = 0.2; // 0.1% each side
-        const netReturn = returnPct - fee;
+        const netReturn = returnPct - feePerTrade;
 
         trades.push({
           entryTime: candles[entryBar].time,
@@ -124,5 +165,5 @@ export function runBacktest(
   const wins = trades.filter((t) => t.returnPct > 0).length;
   const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
 
-  return { trades, equityCurve, totalReturn, winRate, totalTrades: trades.length };
+  return { trades, equityCurve, totalReturn, winRate, totalTrades: trades.length, symbol, interval };
 }

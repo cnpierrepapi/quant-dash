@@ -1,7 +1,8 @@
 // Performance metrics — Sharpe, Sortino, Calmar, break-even, drawdowns
 
 import { mean, stddev } from "./math-utils";
-import type { Trade, BacktestResult } from "./strategy-types";
+import type { Trade, BacktestResult, BARS_PER_YEAR } from "./strategy-types";
+import { BARS_PER_YEAR as BPY } from "./strategy-types";
 
 export type PerformanceMetrics = {
   sharpe: number;
@@ -33,8 +34,9 @@ export type DrawdownEvent = {
 export function computePerformance(
   result: BacktestResult,
   candles: { time: number; close: number }[],
-  barsPerYear = 365
+  interval?: string
 ): PerformanceMetrics {
+  const barsPerYear = BPY[interval || result.interval || "1d"] || 365;
   const { trades, equityCurve, totalReturn } = result;
 
   // Returns per bar
@@ -83,9 +85,12 @@ export function computePerformance(
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.returnPct, 0));
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
 
-  // Buy and hold
-  const buyAndHoldReturn = candles.length > 1
-    ? (candles[candles.length - 1].close / candles[50]?.close - 1) * 100
+  // Buy and hold — start from first equity curve bar (matches backtest start)
+  const bhStartIdx = equityCurve.length > 0
+    ? candles.findIndex((c) => c.time === equityCurve[0].time)
+    : 0;
+  const buyAndHoldReturn = candles.length > 1 && bhStartIdx >= 0
+    ? (candles[candles.length - 1].close / candles[bhStartIdx].close - 1) * 100
     : 0;
 
   // Drawdown events (top 5)

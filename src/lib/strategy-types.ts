@@ -62,6 +62,19 @@ export type BacktestResult = {
   totalReturn: number;
   winRate: number;
   totalTrades: number;
+  symbol: string;
+  interval: string;
+};
+
+// Bars per year for each interval — used for annualizing Sharpe, Sortino, Calmar
+export const BARS_PER_YEAR: Record<string, number> = {
+  "1m": 525_600,  // 60 * 24 * 365
+  "5m": 105_120,  // 12 * 24 * 365
+  "15m": 35_040,  // 4 * 24 * 365
+  "1h": 8_760,    // 24 * 365
+  "4h": 2_190,    // 6 * 365
+  "1d": 365,
+  "1w": 52,
 };
 
 // Default empty strategy

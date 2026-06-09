@@ -7,10 +7,11 @@ import { computePerformance, type PerformanceMetrics } from "@/lib/performance";
 
 export function usePerformance(
   result: BacktestResult | null,
-  candles: Candle[]
+  candles: Candle[],
+  interval?: string
 ): PerformanceMetrics | null {
   return useMemo(() => {
     if (!result || result.trades.length === 0) return null;
-    return computePerformance(result, candles);
-  }, [result, candles]);
+    return computePerformance(result, candles, interval || result.interval);
+  }, [result, candles, interval]);
 }

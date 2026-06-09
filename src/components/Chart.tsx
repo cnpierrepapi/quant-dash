@@ -71,9 +71,17 @@ export default function Chart() {
   const projection = useProjection(candles);
   const strategyHook = useStrategy();
   const backtest = useBacktest();
-  const metrics = usePerformance(backtest.result, candles);
+  const metrics = usePerformance(backtest.result, candles, interval);
   const apiKeyHook = useAPIKeys();
   const live = useLiveStrategy();
+
+  // Auto-clear stale backtest when coin or timeframe changes
+  useEffect(() => {
+    if (backtest.result && (backtest.result.symbol !== symbol || backtest.result.interval !== interval)) {
+      backtest.clear();
+      setShowReport(false);
+    }
+  }, [symbol, interval, backtest.result]);
 
   // Live strategy evaluation on each candle update
   useEffect(() => {
@@ -278,7 +286,7 @@ export default function Chart() {
   };
 
   const handleRunBacktest = () => {
-    if (indicators) backtest.run(strategyHook.strategy, candles, indicators);
+    if (indicators) backtest.run(strategyHook.strategy, candles, indicators, symbol, interval);
   };
 
   const handleClearBacktest = () => {

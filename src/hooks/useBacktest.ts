@@ -10,11 +10,17 @@ export function useBacktest() {
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [running, setRunning] = useState(false);
 
-  const run = useCallback((strategy: Strategy, candles: Candle[], indicators: IndicatorData) => {
+  const run = useCallback((
+    strategy: Strategy,
+    candles: Candle[],
+    indicators: IndicatorData,
+    symbol: string,
+    interval: string
+  ) => {
     if (strategy.entryLong.conditions.length === 0) return;
     setRunning(true);
     requestAnimationFrame(() => {
-      const r = runBacktest(strategy, candles, indicators);
+      const r = runBacktest(strategy, candles, indicators, symbol, interval);
       setResult(r);
       setRunning(false);
     });
